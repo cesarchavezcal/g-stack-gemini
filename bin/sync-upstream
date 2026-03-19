@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# Sync from upstream (garrytan/gstack) and re-apply Gemini CLI branding
+set -e
+
+UPSTREAM_URL="https://github.com/garrytan/gstack.git"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+cd "$REPO_ROOT"
+
+echo "--- g-stack-gemini Upstream Sync & Re-branding ---"
+
+# 1. Add upstream if missing
+if ! git remote | grep -q "^upstream$"; then
+  echo "Adding upstream remote: $UPSTREAM_URL"
+  git remote add upstream "$UPSTREAM_URL"
+fi
+
+# 2. Fetch and reset
+echo "Fetching latest from upstream..."
+git fetch upstream main
+echo "Resetting local main to upstream/main..."
+git reset --hard upstream/main
+
+# 3. Apply Gemini CLI Migrations (Global replacements)
+echo "Applying Gemini CLI rebranding to any new/updated files..."
+
+# Ensure we use an OS-agnostic in-place sed with C locale to avoid encoding errors
+sedi() {
+  if sed --version 2>/dev/null | grep -q GNU; then
+    LC_ALL=C sed -i "$@"
+  else
+    LC_ALL=C sed -i '' "$@"
+  fi
+}
+export -f sedi
+
+# Exclude sync-upstream from its own replacements to keep it stable
+FIND_CMD="find . -type f -not -path '*/node_modules/*' -not -path '*/\.git/*' -not -path '*/browse/dist/*' -not -path './bin/sync-upstream'"
+
+# Order matters for rebranding to avoid broken variable names
+# 1. First replace GSTACK with G_STACK_GEMINI (already handles underscores well)
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/GSTACK/G_STACK_GEMINI/g\" \"\$f\"; done' _ {} +"
+
+# 2. Then replace gstack_ with g_stack_gemini_ (for shell variables and identifiers)
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/gstack_/g_stack_gemini_/g\" \"\$f\"; done' _ {} +"
+
+# 3. Then general rebranding
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/\\\\.claude/\\\\.gemini/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/Claude Code/Gemini CLI/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/claude/gemini/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/Claude/Gemini/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/CLAUDE\\\\.md/GEMINI\\\\.md/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/mcp__claude-in-chrome__\\\\*/gemini-in-chrome/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/ANTHROPIC_API_KEY/GOOGLE_API_KEY/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/anthropic\\\\.com/google\\\\.com/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/Anthropic/Google/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/gstack/g-stack-gemini/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/GStack/g-stack-gemini/gi\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/G-STACK-GEMINI/G_STACK_GEMINI/g\" \"\$f\"; done' _ {} +"
+
+# 4. Fix up URLs (Restore correct fork URL and original upstream URL)
+# The general gstack -> g-stack-gemini replacement broke URLs.
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/github.com\/garrytan\/g-stack-gemini/github.com\/cesarchavezcal\/gstack-gemini/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/raw.githubusercontent.com\/garrytan\/g-stack-gemini/raw.githubusercontent.com\/cesarchavezcal\/gstack-gemini/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/github.com\/garrytan\/gstack/github.com\/garrytan\/gstack/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/raw.githubusercontent.com\/garrytan\/gstack/raw.githubusercontent.com\/garrytan\/gstack/g\" \"\$f\"; done' _ {} +"
+
+# File/Directory renames
+# Rename any gstack-* to g-stack-gemini-* (in bin/ and root)
+find . -maxdepth 2 -name "gstack-*" -not -path '*/node_modules/*' | while read -r f; do
+  new_name=$(echo "$f" | sed 's/gstack-/g-stack-gemini-/')
+  mv "$f" "$new_name" 2>/dev/null || true
+done
+
+if [ -f CLAUDE.md ]; then
+  mv CLAUDE.md GEMINI.md
+fi
+
+# 5. Check origin remote
+if git remote | grep -q "^origin$"; then
+  _ORIGIN_URL=$(git remote get-url origin)
+  if [[ "$_ORIGIN_URL" != *"cesarchavezcal/gstack-gemini"* ]]; then
+    echo "Warning: 'origin' remote does not point to the Gemini-friendly fork."
+    echo "To fix: git remote set-url origin https://github.com/cesarchavezcal/gstack-gemini.git"
+  fi
+fi
+
+# Regenerate skills
+echo "Building binary and regenerating SKILL.md files..."
+bun install
+bun run build
+
+# Run setup
+echo "Running setup..."
+./setup
+
+echo ""
+echo "Update complete! Upstream changes have been merged and re-branded to Gemini CLI."

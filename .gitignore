@@ -1,8 +1,8 @@
 .env
 node_modules/
 browse/dist/
-.gstack/
-.claude/skills/
+.g-stack-gemini/
+.agents/skills/
 .context/
 /tmp/
 *.log
