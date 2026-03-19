@@ -60,8 +60,8 @@ bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/G-STACK-GEMINI/G_STACK_GEMI
 
 # 4. Fix up URLs (Restore correct fork URL and original upstream URL)
 # The general gstack -> g-stack-gemini replacement broke URLs.
-bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/github.com\/garrytan\/g-stack-gemini/github.com\/cesarchavezcal\/gstack-gemini/g\" \"\$f\"; done' _ {} +"
-bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/raw.githubusercontent.com\/garrytan\/g-stack-gemini/raw.githubusercontent.com\/cesarchavezcal\/gstack-gemini/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/github.com\/garrytan\/g-stack-gemini/github.com\/cesarchavezcal\/g-stack-gemini/g\" \"\$f\"; done' _ {} +"
+bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/raw.githubusercontent.com\/garrytan\/g-stack-gemini/raw.githubusercontent.com\/cesarchavezcal\/g-stack-gemini/g\" \"\$f\"; done' _ {} +"
 bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/github.com\/garrytan\/gstack/github.com\/garrytan\/gstack/g\" \"\$f\"; done' _ {} +"
 bash -c "$FIND_CMD -exec bash -c 'for f; do sedi \"s/raw.githubusercontent.com\/garrytan\/gstack/raw.githubusercontent.com\/garrytan\/gstack/g\" \"\$f\"; done' _ {} +"
 
@@ -79,9 +79,9 @@ fi
 # 5. Check origin remote
 if git remote | grep -q "^origin$"; then
   _ORIGIN_URL=$(git remote get-url origin)
-  if [[ "$_ORIGIN_URL" != *"cesarchavezcal/gstack-gemini"* ]]; then
+  if [[ "$_ORIGIN_URL" != *"cesarchavezcal/g-stack-gemini"* ]]; then
     echo "Warning: 'origin' remote does not point to the Gemini-friendly fork."
-    echo "To fix: git remote set-url origin https://github.com/cesarchavezcal/gstack-gemini.git"
+    echo "To fix: git remote set-url origin https://github.com/cesarchavezcal/g-stack-gemini.git"
   fi
 fi
 

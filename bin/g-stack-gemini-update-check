@@ -18,7 +18,7 @@ CACHE_FILE="$STATE_DIR/last-update-check"
 MARKER_FILE="$STATE_DIR/just-upgraded-from"
 SNOOZE_FILE="$STATE_DIR/update-snoozed"
 VERSION_FILE="$G_STACK_GEMINI_DIR/VERSION"
-REMOTE_URL="${G_STACK_GEMINI_REMOTE_URL:-https://raw.githubusercontent.com/cesarchavezcal/gstack-gemini/main/VERSION}"
+REMOTE_URL="${G_STACK_GEMINI_REMOTE_URL:-https://raw.githubusercontent.com/cesarchavezcal/g-stack-gemini/main/VERSION}"
 
 # ─── Force flag (busts cache for standalone /g-stack-gemini-upgrade) ──
 if [ "${1:-}" = "--force" ]; then

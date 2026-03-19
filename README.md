@@ -52,7 +52,7 @@ To install without pinging the public `skills.sh` registry, simply clone the rep
 
 ```bash
 # Clone the repository
-git clone https://github.com/cesarchavezcal/gstack-gemini.git ~/.agents/skills/g-stack-gemini
+git clone https://github.com/cesarchavezcal/g-stack-gemini.git ~/.agents/skills/g-stack-gemini
 
 # Enter the directory and install dependencies
 cd ~/.agents/skills/g-stack-gemini
@@ -207,7 +207,7 @@ Same tools, different outcome — because g-stack-gemini gives you structured ro
 
 The models are getting better fast. The people who figure out how to work with them now — really work with them, not just dabble — are going to have a massive advantage. This is that window. Let's go.
 
-Fifteen specialists and six power tools. All slash commands. All Markdown. All free. **[github.com/cesarchavezcal/gstack-gemini](https://github.com/cesarchavezcal/gstack-gemini)** — MIT License
+Fifteen specialists and six power tools. All slash commands. All Markdown. All free. **[github.com/cesarchavezcal/g-stack-gemini](https://github.com/cesarchavezcal/g-stack-gemini)** — MIT License
 
 > **We're hiring.** Want to ship 10K+ LOC/day and help harden g-stack-gemini?
 > Come work at YC — [ycombinator.com/software](https://ycombinator.com/software)
