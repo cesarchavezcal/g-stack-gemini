@@ -17,9 +17,16 @@ import * as path from 'path';
 const ROOT = path.resolve(import.meta.dir, '..');
 const DRY_RUN = process.argv.includes('--dry-run');
 
+// ─── Template Context ───────────────────────────────────────
+
+interface TemplateContext {
+  skillName: string;
+  tmplPath: string;
+}
+
 // ─── Placeholder Resolvers ──────────────────────────────────
 
-function generateCommandReference(): string {
+function generateCommandReference(_ctx: TemplateContext): string {
   // Group commands by category
   const groups = new Map<string, Array<{ command: string; description: string; usage?: string }>>();
   for (const [cmd, meta] of Object.entries(COMMAND_DESCRIPTIONS)) {
@@ -55,7 +62,7 @@ function generateCommandReference(): string {
   return sections.join('\n').trimEnd();
 }
 
-function generateSnapshotFlags(): string {
+function generateSnapshotFlags(_ctx: TemplateContext): string {
   const lines: string[] = [
     'The snapshot is your primary tool for understanding and interacting with pages.',
     '',
@@ -94,33 +101,40 @@ function generateSnapshotFlags(): string {
   return lines.join('\n');
 }
 
-function generatePreamble(): string {
+function generatePreamble(ctx: TemplateContext): string {
   return `## Preamble (run first)
 
 \`\`\`bash
-_UPD=$(~/.claude/skills/gstack/bin/gstack-update-check 2>/dev/null || .claude/skills/gstack/bin/gstack-update-check 2>/dev/null || true)
+_UPD=$(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-update-check 2>/dev/null || .agents/skills/g-stack-gemini/bin/g-stack-gemini-update-check 2>/dev/null || true)
 [ -n "$_UPD" ] && echo "$_UPD" || true
-mkdir -p ~/.gstack/sessions
-touch ~/.gstack/sessions/"$PPID"
-_SESSIONS=$(find ~/.gstack/sessions -mmin -120 -type f 2>/dev/null | wc -l | tr -d ' ')
-find ~/.gstack/sessions -mmin +120 -type f -delete 2>/dev/null || true
-_CONTRIB=$(~/.claude/skills/gstack/bin/gstack-config get gstack_contributor 2>/dev/null || true)
+mkdir -p ~/.g-stack-gemini/sessions
+touch ~/.g-stack-gemini/sessions/"$PPID"
+_SESSIONS=$(find ~/.g-stack-gemini/sessions -mmin -120 -type f 2>/dev/null | wc -l | tr -d ' ')
+find ~/.g-stack-gemini/sessions -mmin +120 -type f -delete 2>/dev/null || true
+_CONTRIB=$(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-config get g_stack_gemini_contributor 2>/dev/null || true)
+_PROACTIVE=$(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-config get proactive 2>/dev/null || echo "true")
 _BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
 echo "BRANCH: $_BRANCH"
-_LAKE_SEEN=$([ -f ~/.gstack/.completeness-intro-seen ] && echo "yes" || echo "no")
+echo "PROACTIVE: $_PROACTIVE"
+_LAKE_SEEN=$([ -f ~/.g-stack-gemini/.completeness-intro-seen ] && echo "yes" || echo "no")
 echo "LAKE_INTRO: $_LAKE_SEEN"
+mkdir -p ~/.g-stack-gemini/analytics
+echo '{"skill":"${ctx.skillName}","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")'"}'  >> ~/.g-stack-gemini/analytics/skill-usage.jsonl 2>/dev/null || true
 \`\`\`
 
-If output shows \`UPGRADE_AVAILABLE <old> <new>\`: read \`~/.claude/skills/gstack/gstack-upgrade/SKILL.md\` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If \`JUST_UPGRADED <from> <to>\`: tell user "Running gstack v{to} (just updated!)" and continue.
+If \`PROACTIVE\` is \`"false"\`, do not proactively suggest g-stack-gemini skills — only invoke
+them when the user explicitly asks. The user opted out of proactive suggestions.
+
+If output shows \`UPGRADE_AVAILABLE <old> <new>\`: read \`~/.agents/skills/g-stack-gemini/g-stack-gemini-upgrade/SKILL.md\` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If \`JUST_UPGRADED <from> <to>\`: tell user "Running g-stack-gemini v{to} (just updated!)" and continue.
 
 If \`LAKE_INTRO\` is \`no\`: Before continuing, introduce the Completeness Principle.
-Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
+Tell the user: "g-stack-gemini follows the **Boil the Lake** principle — always do the complete
 thing when AI makes the marginal cost near-zero. Read more: https://garryslist.org/posts/boil-the-ocean"
 Then offer to open the essay in their default browser:
 
 \`\`\`bash
 open https://garryslist.org/posts/boil-the-ocean
-touch ~/.gstack/.completeness-intro-seen
+touch ~/.g-stack-gemini/.completeness-intro-seen
 \`\`\`
 
 Only run \`open\` if the user says yes. Always run \`touch\` to mark as seen. This only happens once.
@@ -141,11 +155,11 @@ Per-skill instructions may add additional formatting rules on top of this baseli
 
 AI-assisted coding makes the marginal cost of completeness near-zero. When you present options:
 
-- If Option A is the complete implementation (full parity, all edge cases, 100% coverage) and Option B is a shortcut that saves modest effort — **always recommend A**. The delta between 80 lines and 150 lines is meaningless with CC+gstack. "Good enough" is the wrong instinct when "complete" costs minutes more.
+- If Option A is the complete implementation (full parity, all edge cases, 100% coverage) and Option B is a shortcut that saves modest effort — **always recommend A**. The delta between 80 lines and 150 lines is meaningless with CC+g-stack-gemini. "Good enough" is the wrong instinct when "complete" costs minutes more.
 - **Lake vs. ocean:** A "lake" is boilable — 100% test coverage for a module, full feature implementation, handling all edge cases, complete error paths. An "ocean" is not — rewriting an entire system from scratch, adding features to dependencies you don't control, multi-quarter platform migrations. Recommend boiling lakes. Flag oceans as out of scope.
-- **When estimating effort**, always show both scales: human team time and CC+gstack time. The compression ratio varies by task type — use this reference:
+- **When estimating effort**, always show both scales: human team time and CC+g-stack-gemini time. The compression ratio varies by task type — use this reference:
 
-| Task type | Human team | CC+gstack | Compression |
+| Task type | Human team | CC+g-stack-gemini | Compression |
 |-----------|-----------|-----------|-------------|
 | Boilerplate / scaffolding | 2 days | 15 min | ~100x |
 | Test writing | 1 day | 15 min | ~50x |
@@ -164,20 +178,20 @@ AI-assisted coding makes the marginal cost of completeness near-zero. When you p
 
 ## Contributor Mode
 
-If \`_CONTRIB\` is \`true\`: you are in **contributor mode**. You're a gstack user who also helps make it better.
+If \`_CONTRIB\` is \`true\`: you are in **contributor mode**. You're a g-stack-gemini user who also helps make it better.
 
-**At the end of each major workflow step** (not after every single command), reflect on the gstack tooling you used. Rate your experience 0 to 10. If it wasn't a 10, think about why. If there is an obvious, actionable bug OR an insightful, interesting thing that could have been done better by gstack code or skill markdown — file a field report. Maybe our contributor will help make us better!
+**At the end of each major workflow step** (not after every single command), reflect on the g-stack-gemini tooling you used. Rate your experience 0 to 10. If it wasn't a 10, think about why. If there is an obvious, actionable bug OR an insightful, interesting thing that could have been done better by g-stack-gemini code or skill markdown — file a field report. Maybe our contributor will help make us better!
 
-**Calibration — this is the bar:** For example, \`$B js "await fetch(...)"\` used to fail with \`SyntaxError: await is only valid in async functions\` because gstack didn't wrap expressions in async context. Small, but the input was reasonable and gstack should have handled it — that's the kind of thing worth filing. Things less consequential than this, ignore.
+**Calibration — this is the bar:** For example, \`$B js "await fetch(...)"\` used to fail with \`SyntaxError: await is only valid in async functions\` because g-stack-gemini didn't wrap expressions in async context. Small, but the input was reasonable and g-stack-gemini should have handled it — that's the kind of thing worth filing. Things less consequential than this, ignore.
 
 **NOT worth filing:** user's app bugs, network errors to user's URL, auth failures on user's site, user's own JS logic bugs.
 
-**To file:** write \`~/.gstack/contributor-logs/{slug}.md\` with **all sections below** (do not truncate — include every section through the Date/Version footer):
+**To file:** write \`~/.g-stack-gemini/contributor-logs/{slug}.md\` with **all sections below** (do not truncate — include every section through the Date/Version footer):
 
 \`\`\`
 # {Title}
 
-Hey gstack team — ran into this while using /{skill-name}:
+Hey g-stack-gemini team — ran into this while using /{skill-name}:
 
 **What I was trying to do:** {what the user/agent was attempting}
 **What happened instead:** {what actually happened}
@@ -192,12 +206,12 @@ Hey gstack team — ran into this while using /{skill-name}:
 \`\`\`
 
 ## What would make this a 10
-{one sentence: what gstack should have done differently}
+{one sentence: what g-stack-gemini should have done differently}
 
-**Date:** {YYYY-MM-DD} | **Version:** {gstack version} | **Skill:** /{skill}
+**Date:** {YYYY-MM-DD} | **Version:** {g-stack-gemini version} | **Skill:** /{skill}
 \`\`\`
 
-Slug: lowercase, hyphens, max 60 chars (e.g. \`browse-js-no-await\`). Skip if file already exists. Max 3 reports per session. File inline and continue — don't stop the workflow. Tell user: "Filed gstack field report: {title}"
+Slug: lowercase, hyphens, max 60 chars (e.g. \`browse-js-no-await\`). Skip if file already exists. Max 3 reports per session. File inline and continue — don't stop the workflow. Tell user: "Filed g-stack-gemini field report: {title}"
 
 ## Completion Status Protocol
 
@@ -225,14 +239,14 @@ RECOMMENDATION: [what the user should do next]
 \`\`\``;
 }
 
-function generateBrowseSetup(): string {
+function generateBrowseSetup(_ctx: TemplateContext): string {
   return `## SETUP (run this check BEFORE any browse command)
 
 \`\`\`bash
 _ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 B=""
-[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/gstack/browse/dist/browse" ] && B="$_ROOT/.claude/skills/gstack/browse/dist/browse"
-[ -z "$B" ] && B=~/.claude/skills/gstack/browse/dist/browse
+[ -n "$_ROOT" ] && [ -x "$_ROOT/.agents/skills/g-stack-gemini/browse/dist/browse" ] && B="$_ROOT/.agents/skills/g-stack-gemini/browse/dist/browse"
+[ -z "$B" ] && B=~/.agents/skills/g-stack-gemini/browse/dist/browse
 if [ -x "$B" ]; then
   echo "READY: $B"
 else
@@ -241,12 +255,12 @@ fi
 \`\`\`
 
 If \`NEEDS_SETUP\`:
-1. Tell the user: "gstack browse needs a one-time build (~10 seconds). OK to proceed?" Then STOP and wait.
+1. Tell the user: "g-stack-gemini browse needs a one-time build (~10 seconds). OK to proceed?" Then STOP and wait.
 2. Run: \`cd <SKILL_DIR> && ./setup\`
 3. If \`bun\` is not installed: \`curl -fsSL https://bun.sh/install | bash\``;
 }
 
-function generateBaseBranchDetect(): string {
+function generateBaseBranchDetect(_ctx: TemplateContext): string {
   return `## Step 0: Detect base branch
 
 Determine which branch this PR targets. Use the result as "the base branch" in all subsequent steps.
@@ -267,7 +281,7 @@ branch name wherever the instructions say "the base branch."
 ---`;
 }
 
-function generateQAMethodology(): string {
+function generateQAMethodology(_ctx: TemplateContext): string {
   return `## Modes
 
 ### Diff-aware (automatic when on a feature branch with no URL)
@@ -287,6 +301,8 @@ This is the **primary mode** for developers verifying their work. When the user 
    - CSS/style files → which pages include those stylesheets
    - API endpoints → test them directly with \`$B js "await fetch('/api/...')"\`
    - Static pages (markdown, HTML) → navigate to them directly
+
+   **If no obvious pages/routes are identified from the diff:** Do not skip browser testing. The user invoked /qa because they want browser-based verification. Fall back to Quick mode — navigate to the homepage, follow the top 5 navigation targets, check console for errors, and test any interactive elements found. Backend, config, and infrastructure changes affect app behavior — always verify the app still works.
 
 3. **Detect the running app** — check common local dev ports:
    \`\`\`bash
@@ -541,16 +557,17 @@ Minimum 0 per category.
 8. **Depth over breadth.** 5-10 well-documented issues with evidence > 20 vague descriptions.
 9. **Never delete output files.** Screenshots and reports accumulate — that's intentional.
 10. **Use \`snapshot -C\` for tricky UIs.** Finds clickable divs that the accessibility tree misses.
-11. **Show screenshots to the user.** After every \`$B screenshot\`, \`$B snapshot -a -o\`, or \`$B responsive\` command, use the Read tool on the output file(s) so the user can see them inline. For \`responsive\` (3 files), Read all three. This is critical — without it, screenshots are invisible to the user.`;
+11. **Show screenshots to the user.** After every \`$B screenshot\`, \`$B snapshot -a -o\`, or \`$B responsive\` command, use the Read tool on the output file(s) so the user can see them inline. For \`responsive\` (3 files), Read all three. This is critical — without it, screenshots are invisible to the user.
+12. **Never refuse to use the browser.** When the user invokes /qa or /qa-only, they are requesting browser-based testing. Never suggest evals, unit tests, or other alternatives as a substitute. Even if the diff appears to have no UI changes, backend changes affect app behavior — always open the browser and test.`;
 }
 
-function generateDesignReviewLite(): string {
+function generateDesignReviewLite(_ctx: TemplateContext): string {
   return `## Design Review (conditional, diff-scoped)
 
-Check if the diff touches frontend files using \`gstack-diff-scope\`:
+Check if the diff touches frontend files using \`g-stack-gemini-diff-scope\`:
 
 \`\`\`bash
-eval $(~/.claude/skills/gstack/bin/gstack-diff-scope <base> 2>/dev/null)
+source <(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-diff-scope <base> 2>/dev/null)
 \`\`\`
 
 **If \`SCOPE_FRONTEND=false\`:** Skip design review silently. No output.
@@ -559,7 +576,7 @@ eval $(~/.claude/skills/gstack/bin/gstack-diff-scope <base> 2>/dev/null)
 
 1. **Check for DESIGN.md.** If \`DESIGN.md\` or \`design-system.md\` exists in the repo root, read it. All design findings are calibrated against it — patterns blessed in DESIGN.md are not flagged. If not found, use universal design principles.
 
-2. **Read \`.claude/skills/review/design-checklist.md\`.** If the file cannot be read, skip design review with a note: "Design checklist not found — skipping design review."
+2. **Read \`.agents/skills/review/design-checklist.md\`.** If the file cannot be read, skip design review with a note: "Design checklist not found — skipping design review."
 
 3. **Read each changed frontend file** (full file, not just diff hunks). Frontend files are identified by the patterns listed in the checklist.
 
@@ -573,17 +590,15 @@ eval $(~/.claude/skills/gstack/bin/gstack-diff-scope <base> 2>/dev/null)
 6. **Log the result** for the Review Readiness Dashboard:
 
 \`\`\`bash
-eval $(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)
-mkdir -p ~/.gstack/projects/$SLUG
-echo '{"skill":"design-review-lite","timestamp":"TIMESTAMP","status":"STATUS","findings":N,"auto_fixed":M}' >> ~/.gstack/projects/$SLUG/$BRANCH-reviews.jsonl
+~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-review-log '{"skill":"design-review-lite","timestamp":"TIMESTAMP","status":"STATUS","findings":N,"auto_fixed":M,"commit":"COMMIT"}'
 \`\`\`
 
-Substitute: TIMESTAMP = ISO 8601 datetime, STATUS = "clean" if 0 findings or "issues_found", N = total findings, M = auto-fixed count.`;
+Substitute: TIMESTAMP = ISO 8601 datetime, STATUS = "clean" if 0 findings or "issues_found", N = total findings, M = auto-fixed count, COMMIT = output of \`git rev-parse --short HEAD\`.`;
 }
 
 // NOTE: design-checklist.md is a subset of this methodology for code-level detection.
 // When adding items here, also update review/design-checklist.md, and vice versa.
-function generateDesignMethodology(): string {
+function generateDesignMethodology(_ctx: TemplateContext): string {
   return `## Modes
 
 ### Full (default)
@@ -829,14 +844,13 @@ Compare screenshots and observations across pages for:
 
 ### Output Locations
 
-**Local:** \`.gstack/design-reports/design-audit-{domain}-{YYYY-MM-DD}.md\`
+**Local:** \`.g-stack-gemini/design-reports/design-audit-{domain}-{YYYY-MM-DD}.md\`
 
 **Project-scoped:**
 \`\`\`bash
-eval $(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)
-mkdir -p ~/.gstack/projects/$SLUG
+source <(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-slug 2>/dev/null) && mkdir -p ~/.g-stack-gemini/projects/$SLUG
 \`\`\`
-Write to: \`~/.gstack/projects/{slug}/{user}-{branch}-design-audit-{datetime}.md\`
+Write to: \`~/.g-stack-gemini/projects/{slug}/{user}-{branch}-design-audit-{datetime}.md\`
 
 **Baseline:** Write \`design-baseline.json\` for regression mode:
 \`\`\`json
@@ -917,19 +931,16 @@ Tie everything to user goals and product objectives. Always suggest specific imp
 11. **Show screenshots to the user.** After every \`$B screenshot\`, \`$B snapshot -a -o\`, or \`$B responsive\` command, use the Read tool on the output file(s) so the user can see them inline. For \`responsive\` (3 files), Read all three. This is critical — without it, screenshots are invisible to the user.`;
 }
 
-function generateReviewDashboard(): string {
+function generateReviewDashboard(_ctx: TemplateContext): string {
   return `## Review Readiness Dashboard
 
 After completing the review, read the review log and config to display the dashboard.
 
 \`\`\`bash
-eval $(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)
-cat ~/.gstack/projects/$SLUG/$BRANCH-reviews.jsonl 2>/dev/null || echo "NO_REVIEWS"
-echo "---CONFIG---"
-~/.claude/skills/gstack/bin/gstack-config get skip_eng_review 2>/dev/null || echo "false"
+~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-review-read
 \`\`\`
 
-Parse the output. Find the most recent entry for each skill (plan-ceo-review, plan-eng-review, plan-design-review, design-review-lite). Ignore entries with timestamps older than 7 days. For Design Review, show whichever is more recent between \`plan-design-review\` (full visual audit) and \`design-review-lite\` (code-level check). Append "(FULL)" or "(LITE)" to the status to distinguish. Display:
+Parse the output. Find the most recent entry for each skill (plan-ceo-review, plan-eng-review, plan-design-review, design-review-lite, codex-review). Ignore entries with timestamps older than 7 days. For Design Review, show whichever is more recent between \`plan-design-review\` (full visual audit) and \`design-review-lite\` (code-level check). Append "(FULL)" or "(LITE)" to the status to distinguish. Display:
 
 \`\`\`
 +====================================================================+
@@ -940,24 +951,32 @@ Parse the output. Find the most recent entry for each skill (plan-ceo-review, pl
 | Eng Review      |  1   | 2026-03-16 15:00    | CLEAR     | YES      |
 | CEO Review      |  0   | —                   | —         | no       |
 | Design Review   |  0   | —                   | —         | no       |
+| Codex Review    |  0   | —                   | —         | no       |
 +--------------------------------------------------------------------+
 | VERDICT: CLEARED — Eng Review passed                                |
 +====================================================================+
 \`\`\`
 
 **Review tiers:**
-- **Eng Review (required by default):** The only review that gates shipping. Covers architecture, code quality, tests, performance. Can be disabled globally with \\\`gstack-config set skip_eng_review true\\\` (the "don't bother me" setting).
+- **Eng Review (required by default):** The only review that gates shipping. Covers architecture, code quality, tests, performance. Can be disabled globally with \\\`g-stack-gemini-config set skip_eng_review true\\\` (the "don't bother me" setting).
 - **CEO Review (optional):** Use your judgment. Recommend it for big product/business changes, new user-facing features, or scope decisions. Skip for bug fixes, refactors, infra, and cleanup.
 - **Design Review (optional):** Use your judgment. Recommend it for UI/UX changes. Skip for backend-only, infra, or prompt-only changes.
+- **Codex Review (optional):** Independent second opinion from OpenAI Codex CLI. Shows pass/fail gate. Recommend for critical code changes where a second AI perspective adds value. Skip when Codex CLI is not installed.
 
 **Verdict logic:**
 - **CLEARED**: Eng Review has >= 1 entry within 7 days with status "clean" (or \\\`skip_eng_review\\\` is \\\`true\\\`)
 - **NOT CLEARED**: Eng Review missing, stale (>7 days), or has open issues
-- CEO and Design reviews are shown for context but never block shipping
-- If \\\`skip_eng_review\\\` config is \\\`true\\\`, Eng Review shows "SKIPPED (global)" and verdict is CLEARED`;
+- CEO, Design, and Codex reviews are shown for context but never block shipping
+- If \\\`skip_eng_review\\\` config is \\\`true\\\`, Eng Review shows "SKIPPED (global)" and verdict is CLEARED
+
+**Staleness detection:** After displaying the dashboard, check if any existing reviews may be stale:
+- Parse the \\\`---HEAD---\\\` section from the bash output to get the current HEAD commit hash
+- For each review entry that has a \\\`commit\\\` field: compare it against the current HEAD. If different, count elapsed commits: \\\`git rev-list --count STORED_COMMIT..HEAD\\\`. Display: "Note: {skill} review from {date} may be stale — {N} commits since review"
+- For entries without a \\\`commit\\\` field (legacy entries): display "Note: {skill} review from {date} has no commit tracking — consider re-running for accurate staleness detection"
+- If all reviews match the current HEAD, do not display any staleness notes`;
 }
 
-function generateTestBootstrap(): string {
+function generateTestBootstrap(_ctx: TemplateContext): string {
   return `## Test Framework Bootstrap
 
 **Detect existing test framework and project runtime:**
@@ -978,7 +997,7 @@ function generateTestBootstrap(): string {
 ls jest.config.* vitest.config.* playwright.config.* .rspec pytest.ini pyproject.toml phpunit.xml 2>/dev/null
 ls -d test/ tests/ spec/ __tests__/ cypress/ e2e/ 2>/dev/null
 # Check opt-out marker
-[ -f .gstack/no-test-bootstrap ] && echo "BOOTSTRAP_DECLINED"
+[ -f .g-stack-gemini/no-test-bootstrap ] && echo "BOOTSTRAP_DECLINED"
 \`\`\`
 
 **If test framework detected** (config files or test directories found):
@@ -991,7 +1010,7 @@ Store conventions as prose context for use in Phase 8e.5 or Step 3.4. **Skip the
 **If NO runtime detected** (no config files found): Use AskUserQuestion:
 "I couldn't detect your project's language. What runtime are you using?"
 Options: A) Node.js/TypeScript B) Ruby/Rails C) Python D) Go E) Rust F) PHP G) Elixir H) This project doesn't need tests.
-If user picks H → write \`.gstack/no-test-bootstrap\` and continue without tests.
+If user picks H → write \`.g-stack-gemini/no-test-bootstrap\` and continue without tests.
 
 **If runtime detected but no test framework — bootstrap:**
 
@@ -1023,7 +1042,7 @@ B) [Alternative] — [rationale]. Includes: [packages]
 C) Skip — don't set up testing right now
 RECOMMENDATION: Choose A because [reason based on project context]"
 
-If user picks C → write \`.gstack/no-test-bootstrap\`. Tell user: "If you change your mind later, delete \`.gstack/no-test-bootstrap\` and re-run." Continue without tests.
+If user picks C → write \`.g-stack-gemini/no-test-bootstrap\`. Tell user: "If you change your mind later, delete \`.g-stack-gemini/no-test-bootstrap\` and re-run." Continue without tests.
 
 If multiple runtimes detected (monorepo) → ask which runtime to set up first, with option to do both sequentially.
 
@@ -1085,9 +1104,9 @@ Write TESTING.md with:
 - Test layers: Unit tests (what, where, when), Integration tests, Smoke tests, E2E tests
 - Conventions: file naming, assertion style, setup/teardown patterns
 
-### B7. Update CLAUDE.md
+### B7. Update GEMINI.md
 
-First check: If CLAUDE.md already has a \`## Testing\` section → skip. Don't duplicate.
+First check: If GEMINI.md already has a \`## Testing\` section → skip. Don't duplicate.
 
 Append a \`## Testing\` section:
 - Run command and test directory
@@ -1106,13 +1125,13 @@ Append a \`## Testing\` section:
 git status --porcelain
 \`\`\`
 
-Only commit if there are changes. Stage all bootstrap files (config, test directory, TESTING.md, CLAUDE.md, .github/workflows/test.yml if created):
+Only commit if there are changes. Stage all bootstrap files (config, test directory, TESTING.md, GEMINI.md, .github/workflows/test.yml if created):
 \`git commit -m "chore: bootstrap test framework ({framework name})"\`
 
 ---`;
 }
 
-const RESOLVERS: Record<string, () => string> = {
+const RESOLVERS: Record<string, (ctx: TemplateContext) => string> = {
   COMMAND_REFERENCE: generateCommandReference,
   SNAPSHOT_FLAGS: generateSnapshotFlags,
   PREAMBLE: generatePreamble,
@@ -1134,11 +1153,16 @@ function processTemplate(tmplPath: string): { outputPath: string; content: strin
   const relTmplPath = path.relative(ROOT, tmplPath);
   const outputPath = tmplPath.replace(/\.tmpl$/, '');
 
+  // Extract skill name from frontmatter for TemplateContext
+  const nameMatch = tmplContent.match(/^name:\s*(.+)$/m);
+  const skillName = nameMatch ? nameMatch[1].trim() : path.basename(path.dirname(tmplPath));
+  const ctx: TemplateContext = { skillName, tmplPath };
+
   // Replace placeholders
   let content = tmplContent.replace(/\{\{(\w+)\}\}/g, (match, name) => {
     const resolver = RESOLVERS[name];
     if (!resolver) throw new Error(`Unknown placeholder {{${name}}} in ${relTmplPath}`);
-    return resolver();
+    return resolver(ctx);
   });
 
   // Check for any remaining unresolved placeholders
@@ -1176,12 +1200,17 @@ function findTemplates(): string[] {
     path.join(ROOT, 'plan-eng-review', 'SKILL.md.tmpl'),
     path.join(ROOT, 'retro', 'SKILL.md.tmpl'),
     path.join(ROOT, 'office-hours', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'debug', 'SKILL.md.tmpl'),
-    path.join(ROOT, 'gstack-upgrade', 'SKILL.md.tmpl'),
+    path.join(ROOT, 'investigate', 'SKILL.md.tmpl'),
+    path.join(ROOT, 'g-stack-gemini-upgrade', 'SKILL.md.tmpl'),
     path.join(ROOT, 'plan-design-review', 'SKILL.md.tmpl'),
     path.join(ROOT, 'design-review', 'SKILL.md.tmpl'),
     path.join(ROOT, 'design-consultation', 'SKILL.md.tmpl'),
     path.join(ROOT, 'document-release', 'SKILL.md.tmpl'),
+    path.join(ROOT, 'codex', 'SKILL.md.tmpl'),
+    path.join(ROOT, 'careful', 'SKILL.md.tmpl'),
+    path.join(ROOT, 'freeze', 'SKILL.md.tmpl'),
+    path.join(ROOT, 'guard', 'SKILL.md.tmpl'),
+    path.join(ROOT, 'unfreeze', 'SKILL.md.tmpl'),
   ];
   for (const p of candidates) {
     if (fs.existsSync(p)) templates.push(p);

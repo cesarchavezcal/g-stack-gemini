@@ -4,10 +4,10 @@
  * Provides callJudge (generic JSON-from-LLM), judge (doc quality scorer),
  * and outcomeJudge (planted-bug detection scorer).
  *
- * Requires: ANTHROPIC_API_KEY env var
+ * Requires: GOOGLE_API_KEY env var
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import Google from '@anthropic-ai/sdk';
 
 export interface JudgeScore {
   clarity: number;       // 1-5
@@ -26,14 +26,14 @@ export interface OutcomeJudgeResult {
 }
 
 /**
- * Call claude-sonnet-4-6 with a prompt, extract JSON response.
+ * Call gemini-sonnet-4-6 with a prompt, extract JSON response.
  * Retries once on 429 rate limit errors.
  */
 export async function callJudge<T>(prompt: string): Promise<T> {
-  const client = new Anthropic();
+  const client = new Google();
 
   const makeRequest = () => client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'gemini-sonnet-4-6',
     max_tokens: 1024,
     messages: [{ role: 'user', content: prompt }],
   });

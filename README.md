@@ -1,4 +1,4 @@
-# gstack
+# g-stack-gemini
 
 Hi, I'm [Garry Tan](https://x.com/garrytan). I'm President & CEO of [Y Combinator](https://www.ycombinator.com/), where I've worked with thousands of startups including Coinbase, Instacart, and Rippling when the founders were just one or two people in a garage — companies now worth tens of billions of dollars. Before YC, I designed the Palantir logo and was one of the first eng manager/PM/designers there. I cofounded Posterous, a blog platform we sold to Twitter. I built Bookface, YC's internal social network, back in 2013. I've been building products as a designer, PM, and eng manager for a long time.
 
@@ -16,7 +16,7 @@ In the last 60 days I have written **over 600,000 lines of production code** —
 
 Same person. Different era. The difference is the tooling.
 
-**gstack is how I do it.** It is my open source software factory. It turns Claude Code into a virtual engineering team you actually manage — a CEO who rethinks the product, an eng manager who locks the architecture, a designer who catches AI slop, a paranoid reviewer who finds production bugs, a QA lead who opens a real browser and clicks through your app, and a release engineer who ships the PR. Fifteen specialists, all as slash commands, all Markdown, **all free, MIT license, available right now.**
+**g-stack-gemini is how I do it.** It is my open source software factory. It turns Gemini CLI into a virtual engineering team you actually manage — a CEO who rethinks the product, an eng manager who locks the architecture, a designer who catches AI slop, a paranoid reviewer who finds production bugs, a QA lead who opens a real browser and clicks through your app, and a release engineer who ships the PR. Fifteen specialists and six power tools, all as slash commands, all Markdown, **all free, MIT license, available right now.**
 
 I am learning how to get to the edge of what agentic systems can do as of March 2026, and this is my live experiment. I am sharing it because I want the whole world on this journey with me.
 
@@ -24,16 +24,17 @@ Fork it. Improve it. Make it yours. Don't player hate, appreciate.
 
 **Who this is for:**
 - **Founders and CEOs** — especially technical ones who still want to ship. This is how you build like a team of twenty.
-- **First-time Claude Code users** — gstack is the best way to start. Structured roles instead of a blank prompt.
+- **First-time Gemini CLI users** — g-stack-gemini is the best way to start. Structured roles instead of a blank prompt.
 - **Tech leads and staff engineers** — bring rigorous review, QA, and release automation to every PR
 
 ## Quick start: your first 10 minutes
 
-1. Install gstack (30 seconds — see below)
-2. Run `/plan-ceo-review` on any feature idea
-3. Run `/review` on any branch with changes
-4. Run `/qa` on your staging URL
-5. Stop there. You'll know if this is for you.
+1. Install g-stack-gemini (30 seconds — see below)
+2. Run `/office-hours` — describe what you're building. It will reframe the problem before you write a line of code.
+3. Run `/plan-ceo-review` on any feature idea
+4. Run `/review` on any branch with changes
+5. Run `/qa` on your staging URL
+6. Stop there. You'll know if this is for you.
 
 Expect first useful run in under 5 minutes on any repo with tests already set up.
 
@@ -41,113 +42,158 @@ Expect first useful run in under 5 minutes on any repo with tests already set up
 
 ## Install — takes 30 seconds
 
-**Requirements:** [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Git](https://git-scm.com/), [Bun](https://bun.sh/) v1.0+
+**Requirements:** [Gemini CLI](https://docs.google.com/en/docs/gemini-code), [Git](https://git-scm.com/), [Bun](https://bun.sh/) v1.0+, and standard Node.js (`npx`).
 
-### Step 1: Install on your machine
+### Step 1: Install via Vercel Agent Skills standard
 
-Open Claude Code and paste this. Claude does the rest.
+These skills conform to the universal `.agents/skills` standard, making them compatible with Gemini CLI, Claude Code, Cursor, and other compliant agents.
 
-> Install gstack: run **`git clone https://github.com/garrytan/gstack.git ~/.claude/skills/gstack && cd ~/.claude/skills/gstack && ./setup`** then add a "gstack" section to CLAUDE.md that says to use the /browse skill from gstack for all web browsing, never use mcp\_\_claude-in-chrome\_\_\* tools, and lists the available skills: /office-hours, /plan-ceo-review, /plan-eng-review, /plan-design-review, /design-consultation, /review, /ship, /browse, /qa, /qa-only, /design-review, /setup-browser-cookies, /retro, /debug, /document-release. Then ask the user if they also want to add gstack to the current project so teammates get it.
+To install without pinging the public `skills.sh` registry, simply clone the repository and run `npx skills add` locally:
+
+```bash
+# Clone the repository
+git clone https://github.com/cesarchavezcal/g-stack-gemini.git ~/.agents/skills/g-stack-gemini
+
+# Enter the directory and install dependencies
+cd ~/.agents/skills/g-stack-gemini
+bun install
+bun run build
+./setup
+
+# Add to your project
+cd /path/to/your/project
+npx skills add ~/.agents/skills/g-stack-gemini
+```
 
 ### Step 2: Add to your repo so teammates get it (optional)
 
-> Add gstack to this project: run **`cp -Rf ~/.claude/skills/gstack .claude/skills/gstack && rm -rf .claude/skills/gstack/.git && cd .claude/skills/gstack && ./setup`** then add a "gstack" section to this project's CLAUDE.md that says to use the /browse skill from gstack for all web browsing, never use mcp\_\_claude-in-chrome\_\_\* tools, lists the available skills: /office-hours, /plan-ceo-review, /plan-eng-review, /plan-design-review, /design-consultation, /review, /ship, /browse, /qa, /qa-only, /design-review, /setup-browser-cookies, /retro, /debug, /document-release, and tells Claude that if gstack skills aren't working, run `cd .claude/skills/gstack && ./setup` to build the binary and register skills.
+If you want the skills to be bundled directly inside your project repository so teammates don't have to install them globally:
 
-Real files get committed to your repo (not a submodule), so `git clone` just works. Everything lives inside `.claude/`. Nothing touches your PATH or runs in the background.
+```bash
+# From your project root:
+cp -Rf ~/.agents/skills/g-stack-gemini .agents/skills/g-stack-gemini
+rm -rf .agents/skills/g-stack-gemini/.git
+
+# Instruct your AI Agent (e.g. Gemini CLI)
+```
+Add a "g-stack-gemini" section to this project's `GEMINI.md` that says:
+> Use the /browse skill from g-stack-gemini for all web browsing, never use mcp\_\_gemini-in-chrome\_\_\* tools, list the available skills: /office-hours, /plan-ceo-review, /plan-eng-review, /plan-design-review, /design-consultation, /review, /ship, /browse, /qa, /qa-only, /design-review, /setup-browser-cookies, /retro, /investigate, /document-release, /codex, /careful, /freeze, /guard, /unfreeze, /g-stack-gemini-upgrade, and tell the agent that if g-stack-gemini skills aren't working, run `cd .agents/skills/g-stack-gemini && bun install && bun run build && ./setup` to build the binary and register skills.
+
+Real files get committed to your repo (not a submodule), so `git clone` just works. Everything lives inside `.agents/`. Nothing touches your PATH or runs in the background.
 
 ## See it work
 
 ```
-You:    I want to add photo upload for sellers.
-You:    /plan-ceo-review
-Claude: "Photo upload" is not the feature. The real job is helping
-        sellers create listings that actually sell. What if we
-        auto-identify the product, pull specs and comps from the
-        web, and draft the listing automatically? That's 10 stars.
-        "Upload a photo" is 3 stars. Which are we building?
-        [8 expansion proposals, you cherry-pick 5, defer 3 to backlog]
+You:    I want to build a daily briefing app for my calendar.
+You:    /office-hours
+Gemini: [asks about the pain — specific examples, not hypotheticals]
 
-You:    /plan-design-review
-Claude: Design Score: B  |  AI Slop Score: C
-        "Upload flow looks like a default Bootstrap form."
-        [80-item audit, infers your design system, exports DESIGN.md]
-        [flags 3 AI slop patterns: gradient hero, icon grid, uniform radius]
+You:    Multiple Google calendars, events with stale info, wrong locations.
+        Prep takes forever and the results aren't good enough...
+
+Gemini: I'm going to push back on the framing. You said "daily briefing
+        app." But what you actually described is a personal chief of
+        staff AI.
+        [extracts 5 capabilities you didn't realize you were describing]
+        [challenges 4 premises — you agree, disagree, or adjust]
+        [generates 3 implementation approaches with effort estimates]
+        RECOMMENDATION: Ship the narrowest wedge tomorrow, learn from
+        real usage. The full vision is a 3-month project — start with
+        the daily briefing that actually works.
+        [writes design doc → feeds into downstream skills automatically]
+
+You:    /plan-ceo-review
+        [reads the design doc, challenges scope, runs 10-section review]
 
 You:    /plan-eng-review
-Claude: ┌─────────┐    ┌──────────┐    ┌──────────┐    ┌─────────┐
-        │ Upload  │───▶│ Classify │───▶│ Enrich   │───▶│ Draft   │
-        │ (sync)  │    │ (async)  │    │ (async)  │    │ (async) │
-        └─────────┘    └──────────┘    └──────────┘    └─────────┘
-        [ASCII diagrams for every data flow, state machine, error path]
-        [14-case test matrix, 6 failure modes mapped, 3 security concerns]
+        [ASCII diagrams for data flow, state machines, error paths]
+        [test matrix, failure modes, security concerns]
 
 You:    Approve plan. Exit plan mode.
-        [Claude writes 2,400 lines across 11 files — models, services,
-         controllers, views, migrations, and tests. ~8 minutes.]
+        [writes 2,400 lines across 11 files. ~8 minutes.]
 
 You:    /review
-Claude: [AUTO-FIXED] Orphan S3 cleanup on failed upload
-        [AUTO-FIXED] Missing index on listings.status
-        [ASK] Race condition on hero image selection → You: yes
-        [traces every new enum value through all switch statements]
-        3 issues — 2 auto-fixed, 1 fixed.
+        [AUTO-FIXED] 2 issues. [ASK] Race condition → you approve fix.
 
 You:    /qa https://staging.myapp.com
-Claude: [opens real browser, logs in, uploads photos, clicks through flows]
-        Upload → classify → enrich → draft: end to end ✓
-        Mobile: ✓  |  Slow connection: ✓  |  Bad image: ✓
-        [finds bug: preview doesn't clear on second upload — fixes it]
-        Regression test generated.
+        [opens real browser, clicks through flows, finds and fixes a bug]
 
 You:    /ship
-Claude: Tests: 42 → 51 (+9 new)
-        Coverage: 14/14 code paths (100%)
-        PR: github.com/you/app/pull/42
+        Tests: 42 → 51 (+9 new). PR: github.com/you/app/pull/42
 ```
 
-One feature. Seven commands. The agent reframed the product, ran an 80-item design audit, drew the architecture, wrote 2,400 lines of code, found a race condition I would have missed, auto-fixed two issues, opened a real browser to QA test, found and fixed a bug I didn't know about, wrote 9 tests, and generated a regression test. That is not a copilot. That is a team.
+You said "daily briefing app." The agent said "you're building a chief of staff AI" — because it listened to your pain, not your feature request. Then it challenged your premises, generated three approaches, recommended the narrowest wedge, and wrote a design doc that fed into every downstream skill. Eight commands. That is not a copilot. That is a team.
 
-## The team
+## The sprint
+
+g-stack-gemini is a process, not a collection of tools. The skills are ordered the way a sprint runs:
+
+**Think → Plan → Build → Review → Test → Ship → Reflect**
+
+Each skill feeds into the next. `/office-hours` writes a design doc that `/plan-ceo-review` reads. `/plan-eng-review` writes a test plan that `/qa` picks up. `/review` catches bugs that `/ship` verifies are fixed. Nothing falls through the cracks because every step knows what came before it.
+
+One sprint, one person, one feature — that takes about 30 minutes with g-stack-gemini. But here's what changes everything: you can run 10-15 of these sprints in parallel. Different features, different branches, different agents — all at the same time. That is how I ship 10,000+ lines of production code per day while doing my actual job.
 
 | Skill | Your specialist | What they do |
 |-------|----------------|--------------|
+| `/office-hours` | **YC Office Hours** | Start here. Six forcing questions that reframe your product before you write code. Pushes back on your framing, challenges premises, generates implementation alternatives. Design doc feeds into every downstream skill. |
 | `/plan-ceo-review` | **CEO / Founder** | Rethink the problem. Find the 10-star product hiding inside the request. Four modes: Expansion, Selective Expansion, Hold Scope, Reduction. |
 | `/plan-eng-review` | **Eng Manager** | Lock in architecture, data flow, diagrams, edge cases, and tests. Forces hidden assumptions into the open. |
 | `/plan-design-review` | **Senior Designer** | Rates each design dimension 0-10, explains what a 10 looks like, then edits the plan to get there. AI Slop detection. Interactive — one AskUserQuestion per design choice. |
 | `/design-consultation` | **Design Partner** | Build a complete design system from scratch. Knows the landscape, proposes creative risks, generates realistic product mockups. Design at the heart of all other phases. |
 | `/review` | **Staff Engineer** | Find the bugs that pass CI but blow up in production. Auto-fixes the obvious ones. Flags completeness gaps. |
-| `/ship` | **Release Engineer** | Sync main, run tests, audit coverage, push, open PR. Bootstraps test frameworks if you don't have one. One command. |
-| `/browse` | **QA Engineer** | Give the agent eyes. Real Chromium browser, real clicks, real screenshots. ~100ms per command. |
+| `/investigate` | **Debugger** | Systematic root-cause debugging. Iron Law: no fixes without investigation. Traces data flow, tests hypotheses, stops after 3 failed fixes. |
+| `/design-review` | **Designer Who Codes** | Same audit as /plan-design-review, then fixes what it finds. Atomic commits, before/after screenshots. |
 | `/qa` | **QA Lead** | Test your app, find bugs, fix them with atomic commits, re-verify. Auto-generates regression tests for every fix. |
 | `/qa-only` | **QA Reporter** | Same methodology as /qa but report only. Use when you want a pure bug report without code changes. |
-| `/design-review` | **Designer Who Codes** | Same audit as /plan-design-review, then fixes what it finds. Atomic commits, before/after screenshots. |
-| `/setup-browser-cookies` | **Session Manager** | Import cookies from your real browser (Chrome, Arc, Brave, Edge) into the headless session. Test authenticated pages. |
-| `/retro` | **Eng Manager** | Team-aware weekly retro. Per-person breakdowns, shipping streaks, test health trends, growth opportunities. |
-| `/office-hours` | **YC Office Hours** | Two modes. Startup: six forcing questions on demand, users, and product. Builder: brainstorming for side projects, hackathons, and learning. Writes a design doc with personal observations about how you think. |
-| `/debug` | **Debugger** | Systematic root-cause debugging. Iron Law: no fixes without investigation. Traces data flow, tests hypotheses, stops after 3 failed fixes. |
+| `/ship` | **Release Engineer** | Sync main, run tests, audit coverage, push, open PR. Bootstraps test frameworks if you don't have one. One command. |
 | `/document-release` | **Technical Writer** | Update all project docs to match what you just shipped. Catches stale READMEs automatically. |
+| `/retro` | **Eng Manager** | Team-aware weekly retro. Per-person breakdowns, shipping streaks, test health trends, growth opportunities. |
+| `/browse` | **QA Engineer** | Give the agent eyes. Real Chromium browser, real clicks, real screenshots. ~100ms per command. |
+| `/setup-browser-cookies` | **Session Manager** | Import cookies from your real browser (Chrome, Arc, Brave, Edge) into the headless session. Test authenticated pages. |
+
+### Power tools
+
+| Skill | What it does |
+|-------|-------------|
+| `/codex` | **Second Opinion** — independent code review from OpenAI Codex CLI. Three modes: review (pass/fail gate), adversarial challenge, and open consultation. Cross-model analysis when both `/review` and `/codex` have run. |
+| `/careful` | **Safety Guardrails** — warns before destructive commands (rm -rf, DROP TABLE, force-push). Say "be careful" to activate. Override any warning. |
+| `/freeze` | **Edit Lock** — restrict file edits to one directory. Prevents accidental changes outside scope while debugging. |
+| `/guard` | **Full Safety** — `/careful` + `/freeze` in one command. Maximum safety for prod work. |
+| `/unfreeze` | **Unlock** — remove the `/freeze` boundary. |
+| `/g-stack-gemini-upgrade` | **Self-Updater** — upgrade g-stack-gemini to latest. Detects global vs vendored install, syncs both, shows what changed. |
 
 **[Deep dives with examples and philosophy for every skill →](docs/skills.md)**
 
 ## What's new and why it matters
 
+**`/office-hours` reframes your product before you write code.** You say "daily briefing app." It listens to your actual pain, pushes back on the framing, tells you you're really building a personal chief of staff AI, challenges your premises, and generates three implementation approaches with effort estimates. The design doc it writes feeds directly into `/plan-ceo-review` and `/plan-eng-review` — so every downstream skill starts with real clarity instead of a vague feature request.
+
 **Design is at the heart.** `/design-consultation` doesn't just pick fonts. It researches what's out there in your space, proposes safe choices AND creative risks, generates realistic mockups of your actual product, and writes `DESIGN.md` — and then `/design-review` and `/plan-eng-review` read what you chose. Design decisions flow through the whole system.
 
-**`/qa` was a massive unlock.** It let me go from 6 to 12 parallel workers. Claude Code saying *"I SEE THE ISSUE"* and then actually fixing it, generating a regression test, and verifying the fix — that changed how I work. The agent has eyes now.
+**`/qa` was a massive unlock.** It let me go from 6 to 12 parallel workers. Gemini CLI saying *"I SEE THE ISSUE"* and then actually fixing it, generating a regression test, and verifying the fix — that changed how I work. The agent has eyes now.
 
-**Smart review routing.** Just like at a well-run startup: CEO doesn't have to look at infra bug fixes, design review isn't needed for backend changes. gstack tracks what reviews are run, figures out what's appropriate, and just does the smart thing. The Review Readiness Dashboard tells you where you stand before you ship.
+**Smart review routing.** Just like at a well-run startup: CEO doesn't have to look at infra bug fixes, design review isn't needed for backend changes. g-stack-gemini tracks what reviews are run, figures out what's appropriate, and just does the smart thing. The Review Readiness Dashboard tells you where you stand before you ship.
 
 **Test everything.** `/ship` bootstraps test frameworks from scratch if your project doesn't have one. Every `/ship` run produces a coverage audit. Every `/qa` bug fix generates a regression test. 100% test coverage is the goal — tests make vibe coding safe instead of yolo coding.
 
-**`/document-release` is the engineer you never had.** It reads every doc file in your project, cross-references the diff, and updates everything that drifted. README, ARCHITECTURE, CONTRIBUTING, CLAUDE.md, TODOS — all kept current automatically.
+**`/document-release` is the engineer you never had.** It reads every doc file in your project, cross-references the diff, and updates everything that drifted. README, ARCHITECTURE, CONTRIBUTING, GEMINI.md, TODOS — all kept current automatically. And now `/ship` auto-invokes it — docs stay current without an extra command.
 
-## 10 sessions at once
+**Browser handoff when the AI gets stuck.** Hit a CAPTCHA, auth wall, or MFA prompt? `$B handoff` opens a visible Chrome at the exact same page with all your cookies and tabs intact. Solve the problem, tell Gemini you're done, `$B resume` picks up right where it left off. The agent even suggests it automatically after 3 consecutive failures.
 
-gstack is powerful with one session. It is transformative with ten.
+**Multi-AI second opinion.** `/codex` gets an independent review from OpenAI's Codex CLI — a completely different AI looking at the same diff. Three modes: code review with a pass/fail gate, adversarial challenge that actively tries to break your code, and open consultation with session continuity. When both `/review` (Gemini) and `/codex` (OpenAI) have reviewed the same branch, you get a cross-model analysis showing which findings overlap and which are unique to each.
 
-[Conductor](https://conductor.build) runs multiple Claude Code sessions in parallel — each in its own isolated workspace. One session running `/qa` on staging, another doing `/review` on a PR, a third implementing a feature, and seven more on other branches. All at the same time.
+**Safety guardrails on demand.** Say "be careful" and `/careful` warns before any destructive command — rm -rf, DROP TABLE, force-push, git reset --hard. `/freeze` locks edits to one directory while debugging so Gemini can't accidentally "fix" unrelated code. `/guard` activates both. `/investigate` auto-freezes to the module being investigated.
 
-One person, ten parallel agents, each with the right cognitive mode. That is a different way of building software.
+**Proactive skill suggestions.** g-stack-gemini notices what stage you're in — brainstorming, reviewing, debugging, testing — and suggests the right skill. Don't like it? Say "stop suggesting" and it remembers across sessions.
+
+## 10-15 parallel sprints
+
+g-stack-gemini is powerful with one sprint. It is transformative with ten running at once.
+
+[Conductor](https://conductor.build) runs multiple Gemini CLI sessions in parallel — each in its own isolated workspace. One session running `/office-hours` on a new idea, another doing `/review` on a PR, a third implementing a feature, a fourth running `/qa` on staging, and six more on other branches. All at the same time. I regularly run 10-15 parallel sprints — that's the practical max right now.
+
+The sprint structure is what makes parallelism work. Without a process, ten agents is ten sources of chaos. With a process — think, plan, build, review, test, ship — each agent knows exactly what to do and when to stop. You manage them the way a CEO manages a team: check in on the decisions that matter, let the rest run.
 
 ---
 
@@ -157,13 +203,13 @@ This is **free, MIT licensed, open source, available now.** No premium tier. No 
 
 I open sourced how I do development and I am actively upgrading my own software factory here. You can fork it and make it your own. That's the whole point. I want everyone on this journey.
 
-Same tools, different outcome — because gstack gives you structured roles and review gates, not generic agent chaos. That governance is the difference between shipping fast and shipping reckless.
+Same tools, different outcome — because g-stack-gemini gives you structured roles and review gates, not generic agent chaos. That governance is the difference between shipping fast and shipping reckless.
 
 The models are getting better fast. The people who figure out how to work with them now — really work with them, not just dabble — are going to have a massive advantage. This is that window. Let's go.
 
-Fifteen specialists. All slash commands. All Markdown. All free. **[github.com/garrytan/gstack](https://github.com/garrytan/gstack)** — MIT License
+Fifteen specialists and six power tools. All slash commands. All Markdown. All free. **[github.com/cesarchavezcal/g-stack-gemini](https://github.com/cesarchavezcal/g-stack-gemini)** — MIT License
 
-> **We're hiring.** Want to ship 10K+ LOC/day and help harden gstack?
+> **We're hiring.** Want to ship 10K+ LOC/day and help harden g-stack-gemini?
 > Come work at YC — [ycombinator.com/software](https://ycombinator.com/software)
 > Extremely competitive salary and equity. San Francisco, Dogpatch District.
 
@@ -179,20 +225,21 @@ Fifteen specialists. All slash commands. All Markdown. All free. **[github.com/g
 
 ## Troubleshooting
 
-**Skill not showing up?** `cd ~/.claude/skills/gstack && ./setup`
+**Skill not showing up?** `cd ~/.agents/skills/g-stack-gemini && ./setup`
 
-**`/browse` fails?** `cd ~/.claude/skills/gstack && bun install && bun run build`
+**`/browse` fails?** `cd ~/.agents/skills/g-stack-gemini && bun install && bun run build`
 
-**Stale install?** Run `/gstack-upgrade` — or set `auto_upgrade: true` in `~/.gstack/config.yaml`
+**Stale install?** Run `/g-stack-gemini-upgrade` — or set `auto_upgrade: true` in `~/.g-stack-gemini/config.yaml`
 
-**Claude says it can't see the skills?** Make sure your project's `CLAUDE.md` has a gstack section. Add this:
+**Gemini says it can't see the skills?** Make sure your project's `GEMINI.md` has a g-stack-gemini section. Add this:
 
 ```
-## gstack
-Use /browse from gstack for all web browsing. Never use mcp__claude-in-chrome__* tools.
+## g-stack-gemini
+Use /browse from g-stack-gemini for all web browsing. Never use mcp__gemini-in-chrome__* tools.
 Available skills: /office-hours, /plan-ceo-review, /plan-eng-review, /plan-design-review,
 /design-consultation, /review, /ship, /browse, /qa, /qa-only, /design-review,
-/setup-browser-cookies, /retro, /debug, /document-release.
+/setup-browser-cookies, /retro, /investigate, /document-release, /codex, /careful,
+/freeze, /guard, /unfreeze, /g-stack-gemini-upgrade.
 ```
 
 ## License

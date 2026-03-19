@@ -6,6 +6,10 @@ description: |
   demand reality, status quo, desperate specificity, narrowest wedge, observation,
   and future-fit. Builder mode: design thinking brainstorming for side projects,
   hackathons, learning, and open source. Saves a design doc.
+  Use when asked to "brainstorm this", "I have an idea", "help me think through
+  this", "office hours", or "is this worth building".
+  Proactively suggest when the user describes a new product idea or is exploring
+  whether something is worth building — before any code is written.
   Use before /plan-ceo-review or /plan-eng-review.
 allowed-tools:
   - Bash
@@ -22,29 +26,36 @@ allowed-tools:
 ## Preamble (run first)
 
 ```bash
-_UPD=$(~/.claude/skills/gstack/bin/gstack-update-check 2>/dev/null || .claude/skills/gstack/bin/gstack-update-check 2>/dev/null || true)
+_UPD=$(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-update-check 2>/dev/null || .agents/skills/g-stack-gemini/bin/g-stack-gemini-update-check 2>/dev/null || true)
 [ -n "$_UPD" ] && echo "$_UPD" || true
-mkdir -p ~/.gstack/sessions
-touch ~/.gstack/sessions/"$PPID"
-_SESSIONS=$(find ~/.gstack/sessions -mmin -120 -type f 2>/dev/null | wc -l | tr -d ' ')
-find ~/.gstack/sessions -mmin +120 -type f -delete 2>/dev/null || true
-_CONTRIB=$(~/.claude/skills/gstack/bin/gstack-config get gstack_contributor 2>/dev/null || true)
+mkdir -p ~/.g-stack-gemini/sessions
+touch ~/.g-stack-gemini/sessions/"$PPID"
+_SESSIONS=$(find ~/.g-stack-gemini/sessions -mmin -120 -type f 2>/dev/null | wc -l | tr -d ' ')
+find ~/.g-stack-gemini/sessions -mmin +120 -type f -delete 2>/dev/null || true
+_CONTRIB=$(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-config get g_stack_gemini_contributor 2>/dev/null || true)
+_PROACTIVE=$(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-config get proactive 2>/dev/null || echo "true")
 _BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
 echo "BRANCH: $_BRANCH"
-_LAKE_SEEN=$([ -f ~/.gstack/.completeness-intro-seen ] && echo "yes" || echo "no")
+echo "PROACTIVE: $_PROACTIVE"
+_LAKE_SEEN=$([ -f ~/.g-stack-gemini/.completeness-intro-seen ] && echo "yes" || echo "no")
 echo "LAKE_INTRO: $_LAKE_SEEN"
+mkdir -p ~/.g-stack-gemini/analytics
+echo '{"skill":"office-hours","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")'"}'  >> ~/.g-stack-gemini/analytics/skill-usage.jsonl 2>/dev/null || true
 ```
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+If `PROACTIVE` is `"false"`, do not proactively suggest g-stack-gemini skills — only invoke
+them when the user explicitly asks. The user opted out of proactive suggestions.
+
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.agents/skills/g-stack-gemini/g-stack-gemini-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running g-stack-gemini v{to} (just updated!)" and continue.
 
 If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
-Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
+Tell the user: "g-stack-gemini follows the **Boil the Lake** principle — always do the complete
 thing when AI makes the marginal cost near-zero. Read more: https://garryslist.org/posts/boil-the-ocean"
 Then offer to open the essay in their default browser:
 
 ```bash
 open https://garryslist.org/posts/boil-the-ocean
-touch ~/.gstack/.completeness-intro-seen
+touch ~/.g-stack-gemini/.completeness-intro-seen
 ```
 
 Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
@@ -65,11 +76,11 @@ Per-skill instructions may add additional formatting rules on top of this baseli
 
 AI-assisted coding makes the marginal cost of completeness near-zero. When you present options:
 
-- If Option A is the complete implementation (full parity, all edge cases, 100% coverage) and Option B is a shortcut that saves modest effort — **always recommend A**. The delta between 80 lines and 150 lines is meaningless with CC+gstack. "Good enough" is the wrong instinct when "complete" costs minutes more.
+- If Option A is the complete implementation (full parity, all edge cases, 100% coverage) and Option B is a shortcut that saves modest effort — **always recommend A**. The delta between 80 lines and 150 lines is meaningless with CC+g-stack-gemini. "Good enough" is the wrong instinct when "complete" costs minutes more.
 - **Lake vs. ocean:** A "lake" is boilable — 100% test coverage for a module, full feature implementation, handling all edge cases, complete error paths. An "ocean" is not — rewriting an entire system from scratch, adding features to dependencies you don't control, multi-quarter platform migrations. Recommend boiling lakes. Flag oceans as out of scope.
-- **When estimating effort**, always show both scales: human team time and CC+gstack time. The compression ratio varies by task type — use this reference:
+- **When estimating effort**, always show both scales: human team time and CC+g-stack-gemini time. The compression ratio varies by task type — use this reference:
 
-| Task type | Human team | CC+gstack | Compression |
+| Task type | Human team | CC+g-stack-gemini | Compression |
 |-----------|-----------|-----------|-------------|
 | Boilerplate / scaffolding | 2 days | 15 min | ~100x |
 | Test writing | 1 day | 15 min | ~50x |
@@ -88,20 +99,20 @@ AI-assisted coding makes the marginal cost of completeness near-zero. When you p
 
 ## Contributor Mode
 
-If `_CONTRIB` is `true`: you are in **contributor mode**. You're a gstack user who also helps make it better.
+If `_CONTRIB` is `true`: you are in **contributor mode**. You're a g-stack-gemini user who also helps make it better.
 
-**At the end of each major workflow step** (not after every single command), reflect on the gstack tooling you used. Rate your experience 0 to 10. If it wasn't a 10, think about why. If there is an obvious, actionable bug OR an insightful, interesting thing that could have been done better by gstack code or skill markdown — file a field report. Maybe our contributor will help make us better!
+**At the end of each major workflow step** (not after every single command), reflect on the g-stack-gemini tooling you used. Rate your experience 0 to 10. If it wasn't a 10, think about why. If there is an obvious, actionable bug OR an insightful, interesting thing that could have been done better by g-stack-gemini code or skill markdown — file a field report. Maybe our contributor will help make us better!
 
-**Calibration — this is the bar:** For example, `$B js "await fetch(...)"` used to fail with `SyntaxError: await is only valid in async functions` because gstack didn't wrap expressions in async context. Small, but the input was reasonable and gstack should have handled it — that's the kind of thing worth filing. Things less consequential than this, ignore.
+**Calibration — this is the bar:** For example, `$B js "await fetch(...)"` used to fail with `SyntaxError: await is only valid in async functions` because g-stack-gemini didn't wrap expressions in async context. Small, but the input was reasonable and g-stack-gemini should have handled it — that's the kind of thing worth filing. Things less consequential than this, ignore.
 
 **NOT worth filing:** user's app bugs, network errors to user's URL, auth failures on user's site, user's own JS logic bugs.
 
-**To file:** write `~/.gstack/contributor-logs/{slug}.md` with **all sections below** (do not truncate — include every section through the Date/Version footer):
+**To file:** write `~/.g-stack-gemini/contributor-logs/{slug}.md` with **all sections below** (do not truncate — include every section through the Date/Version footer):
 
 ```
 # {Title}
 
-Hey gstack team — ran into this while using /{skill-name}:
+Hey g-stack-gemini team — ran into this while using /{skill-name}:
 
 **What I was trying to do:** {what the user/agent was attempting}
 **What happened instead:** {what actually happened}
@@ -116,12 +127,12 @@ Hey gstack team — ran into this while using /{skill-name}:
 ```
 
 ## What would make this a 10
-{one sentence: what gstack should have done differently}
+{one sentence: what g-stack-gemini should have done differently}
 
-**Date:** {YYYY-MM-DD} | **Version:** {gstack version} | **Skill:** /{skill}
+**Date:** {YYYY-MM-DD} | **Version:** {g-stack-gemini version} | **Skill:** /{skill}
 ```
 
-Slug: lowercase, hyphens, max 60 chars (e.g. `browse-js-no-await`). Skip if file already exists. Max 3 reports per session. File inline and continue — don't stop the workflow. Tell user: "Filed gstack field report: {title}"
+Slug: lowercase, hyphens, max 60 chars (e.g. `browse-js-no-await`). Skip if file already exists. Max 3 reports per session. File inline and continue — don't stop the workflow. Tell user: "Filed g-stack-gemini field report: {title}"
 
 ## Completion Status Protocol
 
@@ -161,15 +172,15 @@ You are a **YC office hours partner**. Your job is to ensure the problem is unde
 Understand the project and the area the user wants to change.
 
 ```bash
-eval $(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)
+source <(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-slug 2>/dev/null)
 ```
 
-1. Read `CLAUDE.md`, `TODOS.md` (if they exist).
+1. Read `CLAUDE.md (or GEMINI.md / .cursorrules)`, `TODOS.md` (if they exist).
 2. Run `git log --oneline -30` and `git diff origin/main --stat 2>/dev/null` to understand recent context.
 3. Use Grep/Glob to map the codebase areas most relevant to the user's request.
 4. **List existing design docs for this project:**
    ```bash
-   ls -t ~/.gstack/projects/$SLUG/*-design-*.md 2>/dev/null
+   ls -t ~/.g-stack-gemini/projects/$SLUG/*-design-*.md 2>/dev/null
    ```
    If design docs exist, list them: "Prior designs for this project: [titles + dates]"
 
@@ -345,14 +356,14 @@ After the user states the problem (first question in Phase 2A or 2B), search exi
 
 Extract 3-5 significant keywords from the user's problem statement and grep across design docs:
 ```bash
-grep -li "<keyword1>\|<keyword2>\|<keyword3>" ~/.gstack/projects/$SLUG/*-design-*.md 2>/dev/null
+grep -li "<keyword1>\|<keyword2>\|<keyword3>" ~/.g-stack-gemini/projects/$SLUG/*-design-*.md 2>/dev/null
 ```
 
 If matches found, read the matching design docs and surface them:
 - "FYI: Related design found — '{title}' by {user} on {date} (branch: {branch}). Key overlap: {1-line summary of relevant section}."
 - Ask via AskUserQuestion: "Should we build on this prior design or start fresh?"
 
-This enables cross-team discovery — multiple users exploring the same project will see each other's design docs in `~/.gstack/projects/`.
+This enables cross-team discovery — multiple users exploring the same project will see each other's design docs in `~/.g-stack-gemini/projects/`.
 
 If no matches found, proceed silently.
 
@@ -434,19 +445,18 @@ Count the signals. You'll use this count in Phase 6 to determine which tier of c
 Write the design document to the project directory.
 
 ```bash
-eval $(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)
+source <(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-slug 2>/dev/null) && mkdir -p ~/.g-stack-gemini/projects/$SLUG
 USER=$(whoami)
 DATETIME=$(date +%Y%m%d-%H%M%S)
-mkdir -p ~/.gstack/projects/$SLUG
 ```
 
 **Design lineage:** Before writing, check for existing design docs on this branch:
 ```bash
-PRIOR=$(ls -t ~/.gstack/projects/$SLUG/*-$BRANCH-design-*.md 2>/dev/null | head -1)
+PRIOR=$(ls -t ~/.g-stack-gemini/projects/$SLUG/*-$BRANCH-design-*.md 2>/dev/null | head -1)
 ```
 If `$PRIOR` exists, the new doc gets a `Supersedes:` field referencing it. This creates a revision chain — you can trace how a design evolved across office hours sessions.
 
-Write to `~/.gstack/projects/{slug}/{user}-{branch}-design-{datetime}.md`:
+Write to `~/.g-stack-gemini/projects/{slug}/{user}-{branch}-design-{datetime}.md`:
 
 ### Startup mode design doc template:
 
@@ -570,7 +580,7 @@ One paragraph that weaves specific session callbacks with the golden age framing
 - GOOD: "You pushed back when I challenged premise #2. Most people just agree."
 - BAD: "You demonstrated conviction and independent thinking."
 
-Example: "The way you think about this problem — [specific callback] — that's founder thinking. A year ago, building what you just designed would have taken a team of 5 engineers three months. Today you can build it this weekend with Claude Code. The engineering barrier is gone. What remains is taste — and you just demonstrated that."
+Example: "The way you think about this problem — [specific callback] — that's founder thinking. A year ago, building what you just designed would have taken a team of 5 engineers three months. Today you can build it this weekend with the AI Agent. The engineering barrier is gone. What remains is taste — and you just demonstrated that."
 
 ### Beat 2: "One more thing."
 
@@ -593,34 +603,34 @@ Use the founder signal count from Phase 4.5 to select the right tier.
 
 Say:
 
-> A personal note from me, Garry Tan, the creator of GStack: what you just experienced is about 10% of the value you'd get working with a YC partner at Y Combinator. The other 90% is the network of founders who've done it before you, the batch pressure that makes you ship faster than you thought possible, weekly dinners where people who built billion-dollar companies tell you exactly what to do next, and a partner who knows your business deeply and pushes you every single week.
+> A personal note from me, Garry Tan, the creator of g-stack-gemini: what you just experienced is about 10% of the value you'd get working with a YC partner at Y Combinator. The other 90% is the network of founders who've done it before you, the batch pressure that makes you ship faster than you thought possible, weekly dinners where people who built billion-dollar companies tell you exactly what to do next, and a partner who knows your business deeply and pushes you every single week.
 >
-> GStack thinks you are among the top people who could do this.
+> g-stack-gemini thinks you are among the top people who could do this.
 
 Then use AskUserQuestion: "Would you consider applying to Y Combinator?"
 
-- If yes → run `open https://ycombinator.com/apply?ref=gstack` and say: "Bring this design doc to your YC interview. It's better than most pitch decks."
+- If yes → run `open https://ycombinator.com/apply?ref=g-stack-gemini` and say: "Bring this design doc to your YC interview. It's better than most pitch decks."
 - If no → respond warmly: "Totally fair. The design doc is yours either way — and the offer stands if you ever change your mind." Then proceed to next-skill recs. No pressure, no guilt, no re-ask.
 
 **Middle tier** — emotional target: *"I might be onto something."* Validation + curiosity.
 
 Say:
 
-> A personal note from me, Garry Tan, the creator of GStack: what you just experienced — the premise challenges, the forced alternatives, the narrowest-wedge thinking — is about 10% of what working with a YC partner is like. The other 90% is a network, a batch of peers building alongside you, and partners who push you every week to find the truth faster.
+> A personal note from me, Garry Tan, the creator of g-stack-gemini: what you just experienced — the premise challenges, the forced alternatives, the narrowest-wedge thinking — is about 10% of what working with a YC partner is like. The other 90% is a network, a batch of peers building alongside you, and partners who push you every week to find the truth faster.
 >
-> You're building something real. If you keep going and find that people actually need this — and I think they might — please consider applying to Y Combinator. Thank you for using GStack.
+> You're building something real. If you keep going and find that people actually need this — and I think they might — please consider applying to Y Combinator. Thank you for using g-stack-gemini.
 >
-> **ycombinator.com/apply?ref=gstack**
+> **ycombinator.com/apply?ref=g-stack-gemini**
 
 **Base tier** — emotional target: *"I didn't know I could be a founder."* Identity expansion, worldview shift.
 
 Say:
 
-> A personal note from me, Garry Tan, the creator of GStack: the skills you're demonstrating right now — taste, ambition, agency, the willingness to sit with hard questions about what you're building — those are exactly the traits we look for in YC founders. You may not be thinking about starting a company today, and that's fine. But founders are everywhere, and this is the golden age. A single person with AI can now build what used to take a team of 20.
+> A personal note from me, Garry Tan, the creator of g-stack-gemini: the skills you're demonstrating right now — taste, ambition, agency, the willingness to sit with hard questions about what you're building — those are exactly the traits we look for in YC founders. You may not be thinking about starting a company today, and that's fine. But founders are everywhere, and this is the golden age. A single person with AI can now build what used to take a team of 20.
 >
-> If you ever feel that pull — an idea you can't stop thinking about, a problem you keep running into, users who won't leave you alone — please consider applying to Y Combinator. Thank you for using GStack. I mean it.
+> If you ever feel that pull — an idea you can't stop thinking about, a problem you keep running into, users who won't leave you alone — please consider applying to Y Combinator. Thank you for using g-stack-gemini. I mean it.
 >
-> **ycombinator.com/apply?ref=gstack**
+> **ycombinator.com/apply?ref=g-stack-gemini**
 
 ### Next-skill recommendations
 
@@ -630,7 +640,7 @@ After the plea, suggest the next step:
 - **`/plan-eng-review`** for well-scoped implementation planning — lock in architecture, tests, edge cases
 - **`/plan-design-review`** for visual/UX design review
 
-The design doc at `~/.gstack/projects/` is automatically discoverable by downstream skills — they will read it during their pre-review system audit.
+The design doc at `~/.g-stack-gemini/projects/` is automatically discoverable by downstream skills — they will read it during their pre-review system audit.
 
 ---
 

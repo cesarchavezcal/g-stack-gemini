@@ -18,7 +18,7 @@ const ROOT = path.resolve(import.meta.dir, '..');
 // BLAME PROTOCOL: When an eval fails, do NOT claim "pre-existing" or "not related
 // to our changes" without proof. Run the same eval on main to verify. These tests
 // have invisible couplings — preamble text, SKILL.md content, and timing all affect
-// agent behavior. See CLAUDE.md "E2E eval failure blame protocol" for details.
+// agent behavior. See GEMINI.md "E2E eval failure blame protocol" for details.
 const evalsEnabled = !!process.env.EVALS;
 const describeE2E = evalsEnabled ? describe : describe.skip;
 
@@ -57,7 +57,7 @@ function testIfSelected(testName: string, fn: () => Promise<void>, timeout: numb
   (shouldRun ? test : test.skip)(testName, fn, timeout);
 }
 
-// Eval result collector — accumulates test results, writes to ~/.gstack-dev/evals/ on finalize
+// Eval result collector — accumulates test results, writes to ~/.g-stack-gemini-dev/evals/ on finalize
 const evalCollector = evalsEnabled ? new EvalCollector('e2e') : null;
 
 // Unique run ID for this E2E session — used for heartbeat + per-run log directory
@@ -148,7 +148,7 @@ function logCost(label: string, result: { costEstimate: { turnsUsed: number; est
  */
 function dumpOutcomeDiagnostic(dir: string, label: string, report: string, judgeResult: any) {
   try {
-    const transcriptDir = path.join(dir, '.gstack', 'test-transcripts');
+    const transcriptDir = path.join(dir, '.g-stack-gemini', 'test-transcripts');
     fs.mkdirSync(transcriptDir, { recursive: true });
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     fs.writeFileSync(
@@ -158,14 +158,15 @@ function dumpOutcomeDiagnostic(dir: string, label: string, report: string, judge
   } catch { /* non-fatal */ }
 }
 
-// Fail fast if Anthropic API is unreachable — don't burn through 13 tests getting ConnectionRefused
+// Fail fast if Google API is unreachable — don't burn through 13 tests getting ConnectionRefused
 if (evalsEnabled) {
-  const check = spawnSync('sh', ['-c', 'echo "ping" | claude -p --max-turns 1 --output-format stream-json --verbose --dangerously-skip-permissions'], {
+  const agentBin = process.env.AGENT_BIN || 'gemini';
+  const check = spawnSync('sh', ['-c', `echo "ping" | ${agentBin} -p --max-turns 1 --output-format stream-json --verbose --dangerously-skip-permissions`], {
     stdio: 'pipe', timeout: 30_000,
   });
   const output = check.stdout?.toString() || '';
   if (output.includes('ConnectionRefused') || output.includes('Unable to connect')) {
-    throw new Error('Anthropic API unreachable — aborting E2E suite. Fix connectivity and retry.');
+    throw new Error('Google API unreachable — aborting E2E suite. Fix connectivity and retry.');
   }
 }
 
@@ -260,7 +261,7 @@ Report whether it worked.`,
   }, 90_000);
 
   testIfSelected('skillmd-no-local-binary', async () => {
-    // Create a tmpdir with no browse binary — no local .claude/skills/gstack/browse/dist/browse
+    // Create a tmpdir with no browse binary — no local .agents/skills/g-stack-gemini/browse/dist/browse
     const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-e2e-empty-'));
 
     const skillMd = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
@@ -282,8 +283,8 @@ Report the exact output. Do NOT try to fix or install anything — just report w
     });
 
     // Setup block should either find the global binary (READY) or show NEEDS_SETUP.
-    // On dev machines with gstack installed globally, the fallback path
-    // ~/.claude/skills/gstack/browse/dist/browse exists, so we get READY.
+    // On dev machines with g-stack-gemini installed globally, the fallback path
+    // ~/.agents/skills/g-stack-gemini/browse/dist/browse exists, so we get READY.
     // The important thing is it doesn't crash or give a confusing error.
     const allText = result.output || '';
     recordE2E('SKILL.md setup block (no local binary)', 'Skill E2E tests', result);
@@ -341,12 +342,12 @@ Report the exact output — either "READY: <path>" or "NEEDS_SETUP".`,
 
 ${contribBlock}
 
-OVERRIDE: Write contributor logs to ${logsDir}/ instead of ~/.gstack/contributor-logs/
+OVERRIDE: Write contributor logs to ${logsDir}/ instead of ~/.g-stack-gemini/contributor-logs/
 
 Now try this browse command (it will fail — there is no binary at this path):
 /nonexistent/path/browse goto https://example.com
 
-This is a gstack issue (the browse binary is missing/misconfigured).
+This is a g-stack-gemini issue (the browse binary is missing/misconfigured).
 File a contributor report about this issue. Then tell me what you filed.`,
       workingDirectory: contribDir,
       maxTurns: 8,
@@ -368,7 +369,7 @@ File a contributor report about this issue. Then tell me what you filed.`,
 
     // Verify new reflection-based format
     const logContent = fs.readFileSync(path.join(logsDir, logFiles[0]), 'utf-8');
-    expect(logContent).toContain('Hey gstack team');
+    expect(logContent).toContain('Hey g-stack-gemini team');
     expect(logContent).toContain('What I was trying to do');
     expect(logContent).toContain('What happened instead');
     expect(logContent).toMatch(/rating/i);
@@ -387,7 +388,7 @@ File a contributor report about this issue. Then tell me what you filed.`,
     // Set up a git repo so there's project/branch context to reference
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: sessionDir, stdio: 'pipe', timeout: 5000 });
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
     fs.writeFileSync(path.join(sessionDir, 'app.rb'), '# my app\n');
@@ -406,7 +407,7 @@ File a contributor report about this issue. Then tell me what you filed.`,
     const outputPath = path.join(sessionDir, 'question-output.md');
 
     const result = await runSkillTest({
-      prompt: `You are running a gstack skill. The session preamble detected _SESSIONS=4 (the user has 4 gstack windows open).
+      prompt: `You are running a g-stack-gemini skill. The session preamble detected _SESSIONS=4 (the user has 4 g-stack-gemini windows open).
 
 ${aqBlock}
 
@@ -518,7 +519,7 @@ describeIfSelected('Review skill E2E', ['review-sql-injection'], () => {
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: reviewDir, stdio: 'pipe', timeout: 5000 });
 
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
 
@@ -575,7 +576,7 @@ describeIfSelected('Review enum completeness E2E', ['review-enum-completeness'],
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: enumDir, stdio: 'pipe', timeout: 5000 });
 
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
 
@@ -647,7 +648,7 @@ describeE2E('Review design lite E2E', () => {
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: designDir, stdio: 'pipe', timeout: 5000 });
 
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
 
@@ -729,8 +730,8 @@ Important: The design checklist should catch issues like blacklisted fonts, smal
 
 // --- B6/B7/B8: Planted-bug outcome evals ---
 
-// Outcome evals also need ANTHROPIC_API_KEY for the LLM judge
-const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
+// Outcome evals also need GOOGLE_API_KEY for the LLM judge
+const hasApiKey = !!process.env.GOOGLE_API_KEY;
 const describeOutcome = (evalsEnabled && hasApiKey) ? describe : describe.skip;
 
 // Wrap describeOutcome with selection — skip if no planted-bug tests are selected
@@ -910,7 +911,7 @@ describeIfSelected('Plan CEO Review E2E', ['plan-ceo-review'], () => {
       spawnSync(cmd, args, { cwd: planDir, stdio: 'pipe', timeout: 5000 });
 
     // Init git repo (CEO review SKILL.md has a "System Audit" step that runs git)
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
 
@@ -996,7 +997,7 @@ describeIfSelected('Plan CEO Review SELECTIVE EXPANSION E2E', ['plan-ceo-review-
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: planDir, stdio: 'pipe', timeout: 5000 });
 
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
 
@@ -1079,7 +1080,7 @@ describeIfSelected('Plan Eng Review E2E', ['plan-eng-review'], () => {
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: planDir, stdio: 'pipe', timeout: 5000 });
 
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
 
@@ -1174,7 +1175,7 @@ describeIfSelected('Retro E2E', ['retro'], () => {
       spawnSync(cmd, args, { cwd: retroDir, stdio: 'pipe', timeout: 5000 });
 
     // Create a git repo with varied commit history
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'dev@example.com']);
     run('git', ['config', 'user.name', 'Dev']);
 
@@ -1273,7 +1274,7 @@ describeIfSelected('QA-Only skill E2E', ['qa-only-no-fix'], () => {
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: qaOnlyDir, stdio: 'pipe', timeout: 5000 });
 
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
     fs.writeFileSync(path.join(qaOnlyDir, 'index.html'), '<h1>Test</h1>\n');
@@ -1328,7 +1329,7 @@ Write your report to ${qaOnlyDir}/qa-reports/qa-only-report.md`,
       cwd: qaOnlyDir, stdio: 'pipe',
     });
     const statusLines = gitStatus.stdout.toString().trim().split('\n').filter(
-      (l: string) => l.trim() && !l.includes('.prompt-tmp') && !l.includes('.gstack/') && !l.includes('qa-reports/'),
+      (l: string) => l.trim() && !l.includes('.prompt-tmp') && !l.includes('.g-stack-gemini/') && !l.includes('qa-reports/'),
     );
     expect(statusLines.filter((l: string) => l.startsWith(' M') || l.startsWith('M '))).toHaveLength(0);
   }, 240_000);
@@ -1373,7 +1374,7 @@ describeIfSelected('QA Fix Loop E2E', ['qa-fix-loop'], () => {
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: qaFixDir, stdio: 'pipe', timeout: 5000 });
 
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
     run('git', ['add', '.']);
@@ -1460,7 +1461,7 @@ describeIfSelected('Plan-Eng-Review Test-Plan Artifact E2E', ['plan-eng-review-a
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: planDir, stdio: 'pipe', timeout: 5000 });
 
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
 
@@ -1511,7 +1512,7 @@ export function main() { return Dashboard(); }
     setupBrowseShims(planDir);
 
     // Create project directory for artifacts
-    projectDir = path.join(os.homedir(), '.gstack', 'projects', 'test-project');
+    projectDir = path.join(os.homedir(), '.g-stack-gemini', 'projects', 'test-project');
     fs.mkdirSync(projectDir, { recursive: true });
   });
 
@@ -1528,7 +1529,7 @@ export function main() { return Dashboard(); }
     } catch {}
   });
 
-  test('/plan-eng-review writes test-plan artifact to ~/.gstack/projects/', async () => {
+  test('/plan-eng-review writes test-plan artifact to ~/.g-stack-gemini/projects/', async () => {
     // Count existing test-plan files before
     const beforeFiles = fs.readdirSync(projectDir).filter(f => f.includes('test-plan'));
 
@@ -1777,7 +1778,7 @@ describeIfSelected('Document-Release skill E2E', ['document-release'], () => {
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: docReleaseDir, stdio: 'pipe', timeout: 5000 });
 
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
 
@@ -1878,15 +1879,15 @@ describeE2E('Deferred skill E2E', () => {
 
 });
 
-// --- gstack-upgrade E2E ---
+// --- g-stack-gemini-upgrade E2E ---
 
-describeIfSelected('gstack-upgrade E2E', ['gstack-upgrade-happy-path'], () => {
+describeIfSelected('g-stack-gemini-upgrade E2E', ['g-stack-gemini-upgrade-happy-path'], () => {
   let upgradeDir: string;
   let remoteDir: string;
 
   beforeAll(() => {
     upgradeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-e2e-upgrade-'));
-    remoteDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gstack-remote-'));
+    remoteDir = fs.mkdtempSync(path.join(os.tmpdir(), 'g-stack-gemini-remote-'));
 
     const run = (cmd: string, args: string[], cwd: string) =>
       spawnSync(cmd, args, { cwd, stdio: 'pipe', timeout: 5000 });
@@ -1896,47 +1897,47 @@ describeIfSelected('gstack-upgrade E2E', ['gstack-upgrade-happy-path'], () => {
     run('git', ['config', 'user.email', 'test@test.com'], upgradeDir);
     run('git', ['config', 'user.name', 'Test'], upgradeDir);
 
-    // Create mock gstack install directory (local-git type)
-    const mockGstack = path.join(upgradeDir, '.claude', 'skills', 'gstack');
-    fs.mkdirSync(mockGstack, { recursive: true });
+    // Create mock g-stack-gemini install directory (local-git type)
+    const mockGStackGemini = path.join(upgradeDir, '.gemini', 'skills', 'g-stack-gemini');
+    fs.mkdirSync(mockGStackGemini, { recursive: true });
 
     // Init as a git repo
-    run('git', ['init'], mockGstack);
-    run('git', ['config', 'user.email', 'test@test.com'], mockGstack);
-    run('git', ['config', 'user.name', 'Test'], mockGstack);
+    run('git', ['init'], mockGStackGemini);
+    run('git', ['config', 'user.email', 'test@test.com'], mockGStackGemini);
+    run('git', ['config', 'user.name', 'Test'], mockGStackGemini);
 
     // Create bare remote
     run('git', ['init', '--bare'], remoteDir);
-    run('git', ['remote', 'add', 'origin', remoteDir], mockGstack);
+    run('git', ['remote', 'add', 'origin', remoteDir], mockGStackGemini);
 
     // Write old version files
-    fs.writeFileSync(path.join(mockGstack, 'VERSION'), '0.5.0\n');
-    fs.writeFileSync(path.join(mockGstack, 'CHANGELOG.md'),
+    fs.writeFileSync(path.join(mockGStackGemini, 'VERSION'), '0.5.0\n');
+    fs.writeFileSync(path.join(mockGStackGemini, 'CHANGELOG.md'),
       '# Changelog\n\n## 0.5.0 — 2026-03-01\n\n- Initial release\n');
-    fs.writeFileSync(path.join(mockGstack, 'setup'),
+    fs.writeFileSync(path.join(mockGStackGemini, 'setup'),
       '#!/bin/bash\necho "Setup completed"\n', { mode: 0o755 });
 
     // Initial commit + push
-    run('git', ['add', '.'], mockGstack);
-    run('git', ['commit', '-m', 'initial'], mockGstack);
-    run('git', ['push', '-u', 'origin', 'HEAD:main'], mockGstack);
+    run('git', ['add', '.'], mockGStackGemini);
+    run('git', ['commit', '-m', 'initial'], mockGStackGemini);
+    run('git', ['push', '-u', 'origin', 'HEAD:main'], mockGStackGemini);
 
     // Create new version (simulate upstream release)
-    fs.writeFileSync(path.join(mockGstack, 'VERSION'), '0.6.0\n');
-    fs.writeFileSync(path.join(mockGstack, 'CHANGELOG.md'),
+    fs.writeFileSync(path.join(mockGStackGemini, 'VERSION'), '0.6.0\n');
+    fs.writeFileSync(path.join(mockGStackGemini, 'CHANGELOG.md'),
       '# Changelog\n\n## 0.6.0 — 2026-03-15\n\n- New feature: interactive design review\n- Fix: snapshot flag validation\n\n## 0.5.0 — 2026-03-01\n\n- Initial release\n');
-    run('git', ['add', '.'], mockGstack);
-    run('git', ['commit', '-m', 'release 0.6.0'], mockGstack);
-    run('git', ['push', 'origin', 'HEAD:main'], mockGstack);
+    run('git', ['add', '.'], mockGStackGemini);
+    run('git', ['commit', '-m', 'release 0.6.0'], mockGStackGemini);
+    run('git', ['push', 'origin', 'HEAD:main'], mockGStackGemini);
 
     // Reset working copy back to old version
-    run('git', ['reset', '--hard', 'HEAD~1'], mockGstack);
+    run('git', ['reset', '--hard', 'HEAD~1'], mockGStackGemini);
 
-    // Copy gstack-upgrade skill
-    fs.mkdirSync(path.join(upgradeDir, 'gstack-upgrade'), { recursive: true });
+    // Copy g-stack-gemini-upgrade skill
+    fs.mkdirSync(path.join(upgradeDir, 'g-stack-gemini-upgrade'), { recursive: true });
     fs.copyFileSync(
-      path.join(ROOT, 'gstack-upgrade', 'SKILL.md'),
-      path.join(upgradeDir, 'gstack-upgrade', 'SKILL.md'),
+      path.join(ROOT, 'g-stack-gemini-upgrade', 'SKILL.md'),
+      path.join(upgradeDir, 'g-stack-gemini-upgrade', 'SKILL.md'),
     );
 
     // Commit so git repo is clean
@@ -1949,12 +1950,12 @@ describeIfSelected('gstack-upgrade E2E', ['gstack-upgrade-happy-path'], () => {
     try { fs.rmSync(remoteDir, { recursive: true, force: true }); } catch {}
   });
 
-  testIfSelected('gstack-upgrade-happy-path', async () => {
-    const mockGstack = path.join(upgradeDir, '.claude', 'skills', 'gstack');
+  testIfSelected('g-stack-gemini-upgrade-happy-path', async () => {
+    const mockGStackGemini = path.join(upgradeDir, '.gemini', 'skills', 'g-stack-gemini');
     const result = await runSkillTest({
-      prompt: `Read gstack-upgrade/SKILL.md for the upgrade workflow.
+      prompt: `Read g-stack-gemini-upgrade/SKILL.md for the upgrade workflow.
 
-You are running /gstack-upgrade standalone. The gstack installation is at ./.claude/skills/gstack (local-git type — it has a .git directory with an origin remote).
+You are running /g-stack-gemini-upgrade standalone. The g-stack-gemini installation is at ./.agents/skills/g-stack-gemini (local-git type — it has a .git directory with an origin remote).
 
 Current version: 0.5.0. A new version 0.6.0 is available on origin/main.
 
@@ -1966,24 +1967,24 @@ Follow the standalone upgrade flow:
 
 Skip any AskUserQuestion calls — auto-approve the upgrade. Write a summary of what you did to stdout.
 
-IMPORTANT: The install directory is at ./.claude/skills/gstack — use that exact path.`,
+IMPORTANT: The install directory is at ./.agents/skills/g-stack-gemini — use that exact path.`,
       workingDirectory: upgradeDir,
       maxTurns: 20,
       timeout: 180_000,
-      testName: 'gstack-upgrade-happy-path',
+      testName: 'g-stack-gemini-upgrade-happy-path',
       runId,
     });
 
-    logCost('/gstack-upgrade happy path', result);
+    logCost('/g-stack-gemini-upgrade happy path', result);
 
     // Check that the version was updated
-    const versionAfter = fs.readFileSync(path.join(mockGstack, 'VERSION'), 'utf-8').trim();
+    const versionAfter = fs.readFileSync(path.join(mockGStackGemini, 'VERSION'), 'utf-8').trim();
     const output = result.output || '';
     const mentionsUpgrade = output.toLowerCase().includes('0.6.0') ||
       output.toLowerCase().includes('upgrade') ||
       output.toLowerCase().includes('updated');
 
-    recordE2E('/gstack-upgrade happy path', 'gstack-upgrade E2E', result, {
+    recordE2E('/g-stack-gemini-upgrade happy path', 'g-stack-gemini-upgrade E2E', result, {
       passed: versionAfter === '0.6.0' && ['success', 'error_max_turns'].includes(result.exitReason),
     });
 
@@ -2030,7 +2031,7 @@ describeIfSelected('Design Consultation E2E', [
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: designDir, stdio: 'pipe', timeout: 5000 });
 
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
 
@@ -2073,7 +2074,7 @@ This is a civic tech data platform called CivicPulse for government employees wh
 
 Skip research — work from your design knowledge. Skip the font preview page. Skip any AskUserQuestion calls — this is non-interactive. Accept your first design system proposal.
 
-Write DESIGN.md and CLAUDE.md (or update it) in the working directory.`,
+Write DESIGN.md and GEMINI.md (or update it) in the working directory.`,
       workingDirectory: designDir,
       maxTurns: 20,
       timeout: 360_000,
@@ -2084,9 +2085,9 @@ Write DESIGN.md and CLAUDE.md (or update it) in the working directory.`,
     logCost('/design-consultation core', result);
 
     const designPath = path.join(designDir, 'DESIGN.md');
-    const claudePath = path.join(designDir, 'CLAUDE.md');
+    const geminiPath = path.join(designDir, 'GEMINI.md');
     const designExists = fs.existsSync(designPath);
-    const claudeExists = fs.existsSync(claudePath);
+    const geminiExists = fs.existsSync(geminiPath);
     let designContent = '';
 
     if (designExists) {
@@ -2109,7 +2110,7 @@ Write DESIGN.md and CLAUDE.md (or update it) in the working directory.`,
       }
     }
 
-    const structuralPass = designExists && claudeExists && missingSections.length === 0;
+    const structuralPass = designExists && geminiExists && missingSections.length === 0;
     recordE2E('/design-consultation core', 'Design Consultation E2E', result, {
       passed: structuralPass && judgeResult.passed && ['success', 'error_max_turns'].includes(result.exitReason),
     });
@@ -2119,16 +2120,16 @@ Write DESIGN.md and CLAUDE.md (or update it) in the working directory.`,
     if (designExists) {
       expect(missingSections).toHaveLength(0);
     }
-    if (claudeExists) {
-      const claude = fs.readFileSync(claudePath, 'utf-8');
-      expect(claude.toLowerCase()).toContain('design.md');
+    if (geminiExists) {
+      const gemini = fs.readFileSync(geminiPath, 'utf-8');
+      expect(gemini.toLowerCase()).toContain('design.md');
     }
   }, 420_000);
 
   testIfSelected('design-consultation-research', async () => {
     // Clean up from previous test
     try { fs.unlinkSync(path.join(designDir, 'DESIGN.md')); } catch {}
-    try { fs.unlinkSync(path.join(designDir, 'CLAUDE.md')); } catch {}
+    try { fs.unlinkSync(path.join(designDir, 'GEMINI.md')); } catch {}
 
     const result = await runSkillTest({
       prompt: `Read design-consultation/SKILL.md for the design consultation workflow.
@@ -2302,7 +2303,7 @@ describeIfSelected('Plan Design Review E2E', ['plan-design-review-plan-mode', 'p
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: reviewDir, stdio: 'pipe', timeout: 5000 });
 
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
 
@@ -2453,7 +2454,7 @@ describeIfSelected('Design Review E2E', ['design-review-fix'], () => {
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: qaDesignDir, stdio: 'pipe', timeout: 5000 });
 
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
 
@@ -2620,7 +2621,7 @@ export function divide(a, b) { return a / b; } // BUG: no zero check
     // Init git repo
     const run = (cmd: string, args: string[]) =>
       spawnSync(cmd, args, { cwd: bootstrapDir, stdio: 'pipe', timeout: 5000 });
-    run('git', ['init']);
+    run('git', ['init', '-b', 'main']);
     run('git', ['config', 'user.email', 'test@test.com']);
     run('git', ['config', 'user.name', 'Test']);
     run('git', ['add', '.']);
@@ -2839,6 +2840,76 @@ Output the diagram directly.`,
     const readCalls = result.toolCalls.filter(tc => tc.tool === 'Read');
     expect(readCalls.length).toBeGreaterThan(0);
   }, 180_000);
+});
+
+// --- Codex skill E2E ---
+
+describeIfSelected('Codex skill E2E', ['codex-review'], () => {
+  let codexDir: string;
+
+  beforeAll(() => {
+    codexDir = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-e2e-codex-'));
+
+    const run = (cmd: string, args: string[]) =>
+      spawnSync(cmd, args, { cwd: codexDir, stdio: 'pipe', timeout: 5000 });
+
+    run('git', ['init', '-b', 'main']);
+    run('git', ['config', 'user.email', 'test@test.com']);
+    run('git', ['config', 'user.name', 'Test']);
+
+    // Commit a clean base on main
+    fs.writeFileSync(path.join(codexDir, 'app.rb'), '# clean base\nclass App\nend\n');
+    run('git', ['add', 'app.rb']);
+    run('git', ['commit', '-m', 'initial commit']);
+
+    // Create feature branch with vulnerable code (reuse review fixture)
+    run('git', ['checkout', '-b', 'feature/add-vuln']);
+    const vulnContent = fs.readFileSync(path.join(ROOT, 'test', 'fixtures', 'review-eval-vuln.rb'), 'utf-8');
+    fs.writeFileSync(path.join(codexDir, 'user_controller.rb'), vulnContent);
+    run('git', ['add', 'user_controller.rb']);
+    run('git', ['commit', '-m', 'add vulnerable controller']);
+
+    // Copy the codex skill file
+    fs.copyFileSync(path.join(ROOT, 'codex', 'SKILL.md'), path.join(codexDir, 'codex-SKILL.md'));
+  });
+
+  afterAll(() => {
+    try { fs.rmSync(codexDir, { recursive: true, force: true }); } catch {}
+  });
+
+  test('/codex review produces findings and GATE verdict', async () => {
+    // Check codex is available — skip if not installed
+    const codexCheck = spawnSync('which', ['codex'], { stdio: 'pipe', timeout: 3000 });
+    if (codexCheck.status !== 0) {
+      console.warn('codex CLI not installed — skipping E2E test');
+      return;
+    }
+
+    const result = await runSkillTest({
+      prompt: `You are in a git repo on branch feature/add-vuln with changes against main.
+Read codex-SKILL.md for the /codex skill instructions.
+Run /codex review to review the current diff against main.
+Write the full output (including the GATE verdict) to ${codexDir}/codex-output.md`,
+      workingDirectory: codexDir,
+      maxTurns: 10,
+      timeout: 300_000,
+      testName: 'codex-review',
+      runId,
+    });
+
+    logCost('/codex review', result);
+    recordE2E('/codex review', 'Codex skill E2E', result);
+    expect(result.exitReason).toBe('success');
+
+    // Check that output file was created with review content
+    const outputPath = path.join(codexDir, 'codex-output.md');
+    if (fs.existsSync(outputPath)) {
+      const output = fs.readFileSync(outputPath, 'utf-8');
+      // Should contain the CODEX SAYS header or GATE verdict
+      const hasCodexOutput = output.includes('CODEX') || output.includes('GATE') || output.includes('codex');
+      expect(hasCodexOutput).toBe(true);
+    }
+  }, 360_000);
 });
 
 // Module-level afterAll — finalize eval collector after all tests complete

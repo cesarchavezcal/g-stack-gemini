@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# g-stack-gemini-review-log — atomically log a review result
+# Usage: g-stack-gemini-review-log '{"skill":"...","timestamp":"...","status":"..."}'
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+eval $("$SCRIPT_DIR/g-stack-gemini-slug" 2>/dev/null)
+G_STACK_GEMINI_HOME="${G_STACK_GEMINI_HOME:-$HOME/.g-stack-gemini}"
+mkdir -p "$G_STACK_GEMINI_HOME/projects/$SLUG"
+echo "$1" >> "$G_STACK_GEMINI_HOME/projects/$SLUG/$BRANCH-reviews.jsonl"

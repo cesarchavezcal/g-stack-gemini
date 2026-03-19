@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# g-stack-gemini-config — read/write ~/.g-stack-gemini/config.yaml
+#
+# Usage:
+#   g-stack-gemini-config get <key>          — read a config value
+#   g-stack-gemini-config set <key> <value>  — write a config value
+#   g-stack-gemini-config list               — show all config
+#
+# Env overrides (for testing):
+#   G_STACK_GEMINI_STATE_DIR  — override ~/.g-stack-gemini state directory
+set -euo pipefail
+
+STATE_DIR="${G_STACK_GEMINI_STATE_DIR:-$HOME/.g-stack-gemini}"
+CONFIG_FILE="$STATE_DIR/config.yaml"
+
+case "${1:-}" in
+  get)
+    KEY="${2:?Usage: g-stack-gemini-config get <key>}"
+    grep -E "^${KEY}:" "$CONFIG_FILE" 2>/dev/null | tail -1 | awk '{print $2}' | tr -d '[:space:]' || true
+    ;;
+  set)
+    KEY="${2:?Usage: g-stack-gemini-config set <key> <value>}"
+    VALUE="${3:?Usage: g-stack-gemini-config set <key> <value>}"
+    mkdir -p "$STATE_DIR"
+    if grep -qE "^${KEY}:" "$CONFIG_FILE" 2>/dev/null; then
+      sed -i '' "s/^${KEY}:.*/${KEY}: ${VALUE}/" "$CONFIG_FILE"
+    else
+      echo "${KEY}: ${VALUE}" >> "$CONFIG_FILE"
+    fi
+    ;;
+  list)
+    cat "$CONFIG_FILE" 2>/dev/null || true
+    ;;
+  *)
+    echo "Usage: g-stack-gemini-config {get|set|list} [key] [value]"
+    exit 1
+    ;;
+esac

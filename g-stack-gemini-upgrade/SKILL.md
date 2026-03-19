@@ -1,0 +1,139 @@
+---
+name: g-stack-gemini-upgrade
+version: 1.3.0
+description: |
+  Upgrade g-stack-gemini to the latest version. Use when asked to "upgrade g-stack-gemini",
+  "update g-stack-gemini", or "get latest version".
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - AskUserQuestion
+---
+<!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
+<!-- Regenerate: bun run gen:skill-docs -->
+
+# /g-stack-gemini-upgrade
+
+Upgrade g-stack-gemini to the latest version and show what's new.
+
+## Inline upgrade flow
+
+This section is referenced by all skill preambles when they detect `UPGRADE_AVAILABLE`.
+
+### Step 1: Ask the user (or auto-upgrade)
+
+First, check if auto-upgrade is enabled:
+```bash
+_AUTO=""
+[ "${G_STACK_GEMINI_AUTO_UPGRADE:-}" = "1" ] && _AUTO="true"
+[ -z "$_AUTO" ] && _AUTO=$(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-config get auto_upgrade 2>/dev/null || true)
+echo "AUTO_UPGRADE=$_AUTO"
+```
+
+**If `AUTO_UPGRADE=true` or `AUTO_UPGRADE=1`:** Skip AskUserQuestion. Log "Auto-upgrading g-stack-gemini v{old} → v{new}..." and proceed directly to Step 2. 
+
+**Otherwise**, use AskUserQuestion:
+- Question: "g-stack-gemini **v{new}** is available (you're on v{old}). Upgrade now?"
+- Options: ["Yes, upgrade now", "Always keep me up to date", "Not now", "Never ask again"]
+
+**If "Yes, upgrade now":** Proceed to Step 2.
+
+**If "Always keep me up to date":**
+```bash
+~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-config set auto_upgrade true
+```
+Tell user: "Auto-upgrade enabled. Future updates will install automatically." Then proceed to Step 2.
+
+**If "Not now":** Write snooze state with escalating backoff (first snooze = 24h, second = 48h, third+ = 1 week), then continue with the current skill. Do not mention the upgrade again.
+```bash
+_SNOOZE_FILE=~/.g-stack-gemini/update-snoozed
+_REMOTE_VER="{new}"
+_CUR_LEVEL=0
+if [ -f "$_SNOOZE_FILE" ]; then
+  _SNOOZED_VER=$(awk '{print $1}' "$_SNOOZE_FILE")
+  if [ "$_SNOOZED_VER" = "$_REMOTE_VER" ]; then
+    _CUR_LEVEL=$(awk '{print $2}' "$_SNOOZE_FILE")
+    case "$_CUR_LEVEL" in *[!0-9]*) _CUR_LEVEL=0 ;; esac
+  fi
+fi
+_NEW_LEVEL=$((_CUR_LEVEL + 1))
+[ "$_NEW_LEVEL" -gt 3 ] && _NEW_LEVEL=3
+echo "$_REMOTE_VER $_NEW_LEVEL $(date +%s)" > "$_SNOOZE_FILE"
+```
+Note: `{new}` is the remote version from the `UPGRADE_AVAILABLE` output — substitute it from the update check result.
+
+Tell user the snooze duration: "Next reminder in 24h" (or 48h or 1 week, depending on level). Tip: "Set `auto_upgrade: true` in `~/.g-stack-gemini/config.yaml` for automatic upgrades."
+
+**If "Never ask again":**
+```bash
+~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-config set update_check false
+```
+Tell user: "Update checks disabled. Run `~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-config set update_check true` to re-enable."
+Continue with the current skill.
+
+### Step 2: Save old version
+
+```bash
+OLD_VERSION=$(cat ~/.agents/skills/g-stack-gemini/VERSION 2>/dev/null || echo "unknown")
+```
+
+### Step 3: Upgrade
+
+Since the skills are installed via the local Vercel Agent Skills standard (`.agents/skills`), we simply pull the latest changes from the repository and rebuild the binaries.
+
+```bash
+cd ~/.agents/skills/g-stack-gemini
+STASH_OUTPUT=$(git stash 2>&1)
+git fetch origin
+git reset --hard origin/main
+bun install
+bun run build
+./setup
+```
+If `$STASH_OUTPUT` contains "Saved working directory", warn the user: "Note: local changes in `~/.agents/skills/g-stack-gemini` were stashed."
+
+### Step 4: Write marker + clear cache
+
+```bash
+mkdir -p ~/.g-stack-gemini
+echo "$OLD_VERSION" > ~/.g-stack-gemini/just-upgraded-from
+rm -f ~/.g-stack-gemini/last-update-check
+rm -f ~/.g-stack-gemini/update-snoozed
+```
+
+### Step 5: Show What's New
+
+Read `~/.agents/skills/g-stack-gemini/CHANGELOG.md`. Find all version entries between the old version and the new version. Summarize as 5-7 bullets grouped by theme. Don't overwhelm — focus on user-facing changes. Skip internal refactors unless they're significant.
+
+Format:
+```
+g-stack-gemini v{new} — upgraded from v{old}!
+
+What's new:
+- [bullet 1]
+- [bullet 2]
+- ...
+
+Happy shipping!
+```
+
+### Step 6: Continue
+
+After showing What's New, continue with whatever skill the user originally invoked. The upgrade is done — no further action needed.
+
+---
+
+## Standalone usage
+
+When invoked directly as `/g-stack-gemini-upgrade` (not from a preamble):
+
+1. Force a fresh update check (bypass cache):
+```bash
+~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-update-check --force 2>/dev/null || true
+```
+Use the output to determine if an upgrade is available.
+
+2. If `UPGRADE_AVAILABLE <old> <new>`: follow Steps 2-5 above.
+
+3. If no output (primary is up to date): tell the user "You're already on the latest version."

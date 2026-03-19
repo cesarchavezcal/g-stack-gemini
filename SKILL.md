@@ -1,5 +1,5 @@
 ---
-name: gstack
+name: g-stack-gemini
 version: 1.1.0
 description: |
   Fast headless browser for QA testing and site dogfooding. Navigate any URL, interact with
@@ -7,6 +7,38 @@ description: |
   responsive layouts, test forms and uploads, handle dialogs, and assert element states.
   ~100ms per command. Use when you need to test a feature, verify a deployment, dogfood a
   user flow, or file a bug with evidence.
+
+  g-stack-gemini also includes development workflow skills. When you notice the user is at
+  these stages, suggest the appropriate skill:
+  - Brainstorming a new idea → suggest /office-hours
+  - Reviewing a plan (strategy) → suggest /plan-ceo-review
+  - Reviewing a plan (architecture) → suggest /plan-eng-review
+  - Reviewing a plan (design) → suggest /plan-design-review
+  - Creating a design system → suggest /design-consultation
+  - Debugging errors → suggest /investigate
+  - Testing the app → suggest /qa
+  - Code review before merge → suggest /review
+  - Visual design audit → suggest /design-review
+  - Ready to deploy / create PR → suggest /ship
+  - Post-ship doc updates → suggest /document-release
+  - Weekly retrospective → suggest /retro
+  - Wanting a second opinion or adversarial code review → suggest /codex
+  - Working with production or live systems → suggest /careful
+  - Want to scope edits to one module/directory → suggest /freeze
+  - Maximum safety mode (destructive warnings + edit restrictions) → suggest /guard
+  - Removing edit restrictions → suggest /unfreeze
+  - Upgrading g-stack-gemini to latest version → suggest /g-stack-gemini-upgrade
+
+  If the user pushes back on skill suggestions ("stop suggesting things",
+  "I don't need suggestions", "too aggressive"):
+  1. Stop suggesting for the rest of this session
+  2. Run: g-stack-gemini-config set proactive false
+  3. Say: "Got it — I'll stop suggesting skills. Just tell me to be proactive
+     again if you change your mind."
+
+  If the user says "be proactive again" or "turn on suggestions":
+  1. Run: g-stack-gemini-config set proactive true
+  2. Say: "Proactive suggestions are back on."
 allowed-tools:
   - Bash
   - Read
@@ -19,29 +51,36 @@ allowed-tools:
 ## Preamble (run first)
 
 ```bash
-_UPD=$(~/.claude/skills/gstack/bin/gstack-update-check 2>/dev/null || .claude/skills/gstack/bin/gstack-update-check 2>/dev/null || true)
+_UPD=$(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-update-check 2>/dev/null || .agents/skills/g-stack-gemini/bin/g-stack-gemini-update-check 2>/dev/null || true)
 [ -n "$_UPD" ] && echo "$_UPD" || true
-mkdir -p ~/.gstack/sessions
-touch ~/.gstack/sessions/"$PPID"
-_SESSIONS=$(find ~/.gstack/sessions -mmin -120 -type f 2>/dev/null | wc -l | tr -d ' ')
-find ~/.gstack/sessions -mmin +120 -type f -delete 2>/dev/null || true
-_CONTRIB=$(~/.claude/skills/gstack/bin/gstack-config get gstack_contributor 2>/dev/null || true)
+mkdir -p ~/.g-stack-gemini/sessions
+touch ~/.g-stack-gemini/sessions/"$PPID"
+_SESSIONS=$(find ~/.g-stack-gemini/sessions -mmin -120 -type f 2>/dev/null | wc -l | tr -d ' ')
+find ~/.g-stack-gemini/sessions -mmin +120 -type f -delete 2>/dev/null || true
+_CONTRIB=$(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-config get g_stack_gemini_contributor 2>/dev/null || true)
+_PROACTIVE=$(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-config get proactive 2>/dev/null || echo "true")
 _BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
 echo "BRANCH: $_BRANCH"
-_LAKE_SEEN=$([ -f ~/.gstack/.completeness-intro-seen ] && echo "yes" || echo "no")
+echo "PROACTIVE: $_PROACTIVE"
+_LAKE_SEEN=$([ -f ~/.g-stack-gemini/.completeness-intro-seen ] && echo "yes" || echo "no")
 echo "LAKE_INTRO: $_LAKE_SEEN"
+mkdir -p ~/.g-stack-gemini/analytics
+echo '{"skill":"g-stack-gemini","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")'"}'  >> ~/.g-stack-gemini/analytics/skill-usage.jsonl 2>/dev/null || true
 ```
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+If `PROACTIVE` is `"false"`, do not proactively suggest g-stack-gemini skills — only invoke
+them when the user explicitly asks. The user opted out of proactive suggestions.
+
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.agents/skills/g-stack-gemini/g-stack-gemini-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running g-stack-gemini v{to} (just updated!)" and continue.
 
 If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
-Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
+Tell the user: "g-stack-gemini follows the **Boil the Lake** principle — always do the complete
 thing when AI makes the marginal cost near-zero. Read more: https://garryslist.org/posts/boil-the-ocean"
 Then offer to open the essay in their default browser:
 
 ```bash
 open https://garryslist.org/posts/boil-the-ocean
-touch ~/.gstack/.completeness-intro-seen
+touch ~/.g-stack-gemini/.completeness-intro-seen
 ```
 
 Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
@@ -62,11 +101,11 @@ Per-skill instructions may add additional formatting rules on top of this baseli
 
 AI-assisted coding makes the marginal cost of completeness near-zero. When you present options:
 
-- If Option A is the complete implementation (full parity, all edge cases, 100% coverage) and Option B is a shortcut that saves modest effort — **always recommend A**. The delta between 80 lines and 150 lines is meaningless with CC+gstack. "Good enough" is the wrong instinct when "complete" costs minutes more.
+- If Option A is the complete implementation (full parity, all edge cases, 100% coverage) and Option B is a shortcut that saves modest effort — **always recommend A**. The delta between 80 lines and 150 lines is meaningless with CC+g-stack-gemini. "Good enough" is the wrong instinct when "complete" costs minutes more.
 - **Lake vs. ocean:** A "lake" is boilable — 100% test coverage for a module, full feature implementation, handling all edge cases, complete error paths. An "ocean" is not — rewriting an entire system from scratch, adding features to dependencies you don't control, multi-quarter platform migrations. Recommend boiling lakes. Flag oceans as out of scope.
-- **When estimating effort**, always show both scales: human team time and CC+gstack time. The compression ratio varies by task type — use this reference:
+- **When estimating effort**, always show both scales: human team time and CC+g-stack-gemini time. The compression ratio varies by task type — use this reference:
 
-| Task type | Human team | CC+gstack | Compression |
+| Task type | Human team | CC+g-stack-gemini | Compression |
 |-----------|-----------|-----------|-------------|
 | Boilerplate / scaffolding | 2 days | 15 min | ~100x |
 | Test writing | 1 day | 15 min | ~50x |
@@ -85,20 +124,20 @@ AI-assisted coding makes the marginal cost of completeness near-zero. When you p
 
 ## Contributor Mode
 
-If `_CONTRIB` is `true`: you are in **contributor mode**. You're a gstack user who also helps make it better.
+If `_CONTRIB` is `true`: you are in **contributor mode**. You're a g-stack-gemini user who also helps make it better.
 
-**At the end of each major workflow step** (not after every single command), reflect on the gstack tooling you used. Rate your experience 0 to 10. If it wasn't a 10, think about why. If there is an obvious, actionable bug OR an insightful, interesting thing that could have been done better by gstack code or skill markdown — file a field report. Maybe our contributor will help make us better!
+**At the end of each major workflow step** (not after every single command), reflect on the g-stack-gemini tooling you used. Rate your experience 0 to 10. If it wasn't a 10, think about why. If there is an obvious, actionable bug OR an insightful, interesting thing that could have been done better by g-stack-gemini code or skill markdown — file a field report. Maybe our contributor will help make us better!
 
-**Calibration — this is the bar:** For example, `$B js "await fetch(...)"` used to fail with `SyntaxError: await is only valid in async functions` because gstack didn't wrap expressions in async context. Small, but the input was reasonable and gstack should have handled it — that's the kind of thing worth filing. Things less consequential than this, ignore.
+**Calibration — this is the bar:** For example, `$B js "await fetch(...)"` used to fail with `SyntaxError: await is only valid in async functions` because g-stack-gemini didn't wrap expressions in async context. Small, but the input was reasonable and g-stack-gemini should have handled it — that's the kind of thing worth filing. Things less consequential than this, ignore.
 
 **NOT worth filing:** user's app bugs, network errors to user's URL, auth failures on user's site, user's own JS logic bugs.
 
-**To file:** write `~/.gstack/contributor-logs/{slug}.md` with **all sections below** (do not truncate — include every section through the Date/Version footer):
+**To file:** write `~/.g-stack-gemini/contributor-logs/{slug}.md` with **all sections below** (do not truncate — include every section through the Date/Version footer):
 
 ```
 # {Title}
 
-Hey gstack team — ran into this while using /{skill-name}:
+Hey g-stack-gemini team — ran into this while using /{skill-name}:
 
 **What I was trying to do:** {what the user/agent was attempting}
 **What happened instead:** {what actually happened}
@@ -113,12 +152,12 @@ Hey gstack team — ran into this while using /{skill-name}:
 ```
 
 ## What would make this a 10
-{one sentence: what gstack should have done differently}
+{one sentence: what g-stack-gemini should have done differently}
 
-**Date:** {YYYY-MM-DD} | **Version:** {gstack version} | **Skill:** /{skill}
+**Date:** {YYYY-MM-DD} | **Version:** {g-stack-gemini version} | **Skill:** /{skill}
 ```
 
-Slug: lowercase, hyphens, max 60 chars (e.g. `browse-js-no-await`). Skip if file already exists. Max 3 reports per session. File inline and continue — don't stop the workflow. Tell user: "Filed gstack field report: {title}"
+Slug: lowercase, hyphens, max 60 chars (e.g. `browse-js-no-await`). Skip if file already exists. Max 3 reports per session. File inline and continue — don't stop the workflow. Tell user: "Filed g-stack-gemini field report: {title}"
 
 ## Completion Status Protocol
 
@@ -145,7 +184,11 @@ ATTEMPTED: [what you tried]
 RECOMMENDATION: [what the user should do next]
 ```
 
-# gstack browse: QA Testing & Dogfooding
+If `PROACTIVE` is `false`: do NOT proactively suggest other g-stack-gemini skills during this session.
+Only run skills the user explicitly invokes. This preference persists across sessions via
+`g-stack-gemini-config`.
+
+# g-stack-gemini browse: QA Testing & Dogfooding
 
 Persistent headless Chromium. First call auto-starts (~3s), then ~100-200ms per command.
 Auto-shuts down after 30 min idle. State persists between calls (cookies, tabs, sessions).
@@ -155,8 +198,8 @@ Auto-shuts down after 30 min idle. State persists between calls (cookies, tabs, 
 ```bash
 _ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 B=""
-[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/gstack/browse/dist/browse" ] && B="$_ROOT/.claude/skills/gstack/browse/dist/browse"
-[ -z "$B" ] && B=~/.claude/skills/gstack/browse/dist/browse
+[ -n "$_ROOT" ] && [ -x "$_ROOT/.agents/skills/g-stack-gemini/browse/dist/browse" ] && B="$_ROOT/.agents/skills/g-stack-gemini/browse/dist/browse"
+[ -z "$B" ] && B=~/.agents/skills/g-stack-gemini/browse/dist/browse
 if [ -x "$B" ]; then
   echo "READY: $B"
 else
@@ -165,14 +208,14 @@ fi
 ```
 
 If `NEEDS_SETUP`:
-1. Tell the user: "gstack browse needs a one-time build (~10 seconds). OK to proceed?" Then STOP and wait.
+1. Tell the user: "g-stack-gemini browse needs a one-time build (~10 seconds). OK to proceed?" Then STOP and wait.
 2. Run: `cd <SKILL_DIR> && ./setup`
 3. If `bun` is not installed: `curl -fsSL https://bun.sh/install | bash`
 
 ## IMPORTANT
 
 - Use the compiled binary via Bash: `$B <command>`
-- NEVER use `mcp__claude-in-chrome__*` tools. They are slow and unreliable.
+- NEVER use `mcp__gemini-in-chrome__*` tools. They are slow and unreliable.
 - Browser persists between calls — cookies, login sessions, and tabs carry over.
 - Dialogs (alert/confirm/prompt) are auto-accepted by default — no browser lockup.
 - **Show screenshots:** After `$B screenshot`, `$B snapshot -a -o`, or `$B responsive`, always use the Read tool on the output PNG(s) so the user can see them. Without this, screenshots are invisible.
@@ -492,7 +535,9 @@ Refs are invalidated on navigation — run `snapshot` again after `goto`.
 ### Server
 | Command | Description |
 |---------|-------------|
+| `handoff [message]` | Open visible Chrome at current page for user takeover |
 | `restart` | Restart server |
+| `resume` | Re-snapshot after user takeover, return control to AI |
 | `status` | Health check |
 | `stop` | Shutdown server |
 

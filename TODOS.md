@@ -52,7 +52,9 @@
 
 **Why:** Enables "resume where I left off" for QA sessions and repeatable auth states.
 
-**Effort:** M
+**Context:** The `saveState()`/`restoreState()` helpers from the handoff feature (browser-manager.ts) already capture cookies + localStorage + sessionStorage + URLs. Adding file I/O on top is ~20 lines.
+
+**Effort:** S
 **Priority:** P3
 **Depends on:** Sessions
 
@@ -151,7 +153,7 @@
 
 ### Ship log — persistent record of /ship runs
 
-**What:** Append structured JSON entry to `.gstack/ship-log.json` at end of every /ship run (version, date, branch, PR URL, review findings, Greptile stats, todos completed, test results).
+**What:** Append structured JSON entry to `.g-stack-gemini/ship-log.json` at end of every /ship run (version, date, branch, PR URL, review findings, Greptile stats, todos completed, test results).
 
 **Why:** /retro has no structured data about shipping velocity. Ship log enables: PRs-per-week trending, review finding rates, Greptile signal over time, test suite growth.
 
@@ -171,7 +173,7 @@
 
 **Effort:** L
 **Priority:** P2
-**Depends on:** /setup-gstack-upload, visual PR annotations
+**Depends on:** /setup-g-stack-gemini-upload, visual PR annotations
 
 ### Visual verification with screenshots in PR body
 
@@ -183,7 +185,7 @@
 
 **Effort:** M
 **Priority:** P2
-**Depends on:** /setup-gstack-upload
+**Depends on:** /setup-g-stack-gemini-upload
 
 ## Review
 
@@ -191,7 +193,7 @@
 
 **What:** /ship and /review post inline review comments at specific file:line locations using `gh api` to create pull request review comments.
 
-**Why:** Line-level annotations are more actionable than top-level comments. The PR thread becomes a line-by-line conversation between Greptile, Claude, and human reviewers.
+**Why:** Line-level annotations are more actionable than top-level comments. The PR thread becomes a line-by-line conversation between Greptile, Gemini, and human reviewers.
 
 **Context:** GitHub supports inline review comments via `gh api repos/$REPO/pulls/$PR/reviews`. Pairs naturally with Phase 3.6 visual annotations.
 
@@ -221,7 +223,7 @@
 
 **Effort:** M
 **Priority:** P2
-**Depends on:** /setup-gstack-upload
+**Depends on:** /setup-g-stack-gemini-upload
 
 ## QA
 
@@ -303,7 +305,7 @@
 
 ## Infrastructure
 
-### /setup-gstack-upload skill (S3 bucket)
+### /setup-g-stack-gemini-upload skill (S3 bucket)
 
 **What:** Configure S3 bucket for image hosting. One-time setup for visual PR annotations.
 
@@ -312,15 +314,15 @@
 **Effort:** M
 **Priority:** P2
 
-### gstack-upload helper
+### g-stack-gemini-upload helper
 
-**What:** `browse/bin/gstack-upload` — upload file to S3, return public URL.
+**What:** `browse/bin/g-stack-gemini-upload` — upload file to S3, return public URL.
 
 **Why:** Shared utility for all skills that need to embed images in PRs.
 
 **Effort:** S
 **Priority:** P2
-**Depends on:** /setup-gstack-upload
+**Depends on:** /setup-g-stack-gemini-upload
 
 ### WebM to GIF conversion
 
@@ -347,7 +349,7 @@
 
 **Why:** CI integration catches quality regressions before merge and provides persistent eval records per PR.
 
-**Context:** Requires `ANTHROPIC_API_KEY` in CI secrets. Cost is ~$4/run. Eval persistence system (v0.3.6) writes JSON to `~/.gstack-dev/evals/` — CI would upload as GitHub Actions artifacts and use `eval:compare` to post delta comment.
+**Context:** Requires `GOOGLE_API_KEY` in CI secrets. Cost is ~$4/run. Eval persistence system (v0.3.6) writes JSON to `~/.g-stack-gemini-dev/evals/` — CI would upload as GitHub Actions artifacts and use `eval:compare` to post delta comment.
 
 **Effort:** M
 **Priority:** P2
@@ -355,7 +357,7 @@
 
 ### E2E model pinning
 
-**What:** Pin E2E tests to claude-sonnet-4-6 for cost efficiency, add retry:2 for flaky LLM responses.
+**What:** Pin E2E tests to gemini-sonnet-4-6 for cost efficiency, add retry:2 for flaky LLM responses.
 
 **Why:** Reduce E2E test cost and flakiness.
 
@@ -368,7 +370,7 @@
 
 **Why:** Visual charts better for spotting trends than CLI tools.
 
-**Context:** Reads `~/.gstack-dev/evals/*.json`. ~200 lines HTML + chart.js via Bun HTTP server.
+**Context:** Reads `~/.g-stack-gemini-dev/evals/*.json`. ~200 lines HTML + chart.js via Bun HTTP server.
 
 **Effort:** M
 **Priority:** P3
@@ -380,7 +382,7 @@
 
 **Why:** Automated quality gate catches regressions before merge. Currently QA is manual — CI integration makes it part of the standard workflow.
 
-**Context:** Requires headless browse binary available in CI. The `/qa` skill already produces `baseline.json` with health scores — CI step would compare against the main branch baseline and fail if score drops. Would need `ANTHROPIC_API_KEY` in CI secrets since `/qa` uses Claude.
+**Context:** Requires headless browse binary available in CI. The `/qa` skill already produces `baseline.json` with health scores — CI step would compare against the main branch baseline and fail if score drops. Would need `GOOGLE_API_KEY` in CI secrets since `/qa` uses Gemini.
 
 **Effort:** M
 **Priority:** P2
@@ -388,9 +390,9 @@
 
 ### Cross-platform URL open helper
 
-**What:** `gstack-open-url` helper script — detect platform, use `open` (macOS) or `xdg-open` (Linux).
+**What:** `g-stack-gemini-open-url` helper script — detect platform, use `open` (macOS) or `xdg-open` (Linux).
 
-**Why:** The first-time Completeness Principle intro uses macOS `open` to launch the essay. If gstack ever supports Linux, this silently fails.
+**Why:** The first-time Completeness Principle intro uses macOS `open` to launch the essay. If g-stack-gemini ever supports Linux, this silently fails.
 
 **Effort:** S (human: ~30 min / CC: ~2 min)
 **Priority:** P4
@@ -414,9 +416,9 @@
 
 **What:** Add design docs (`*-design-*.md`) to the Supabase sync pipeline alongside test plans, retro snapshots, and QA reports.
 
-**Why:** Cross-team design discovery at scale. Local `~/.gstack/projects/$SLUG/` keyword-grep discovery works for same-machine users now, but Supabase sync makes it work across the whole team. Duplicate ideas surface, everyone sees what's been explored.
+**Why:** Cross-team design discovery at scale. Local `~/.g-stack-gemini/projects/$SLUG/` keyword-grep discovery works for same-machine users now, but Supabase sync makes it work across the whole team. Duplicate ideas surface, everyone sees what's been explored.
 
-**Context:** /office-hours writes design docs to `~/.gstack/projects/$SLUG/`. The team store already syncs test plans, retro snapshots, QA reports. Design docs follow the same pattern — just add a sync adapter.
+**Context:** /office-hours writes design docs to `~/.g-stack-gemini/projects/$SLUG/`. The team store already syncs test plans, retro snapshots, QA reports. Design docs follow the same pattern — just add a sync adapter.
 
 **Effort:** S
 **Priority:** P2
@@ -440,23 +442,15 @@ Shipped as v0.5.0 on main. Includes `/plan-design-review` (report-only design au
 
 ## Document-Release
 
-### Auto-invoke /document-release from /ship
+### Auto-invoke /document-release from /ship — SHIPPED
 
-**What:** Add Step 8.5 to /ship that reads document-release/SKILL.md and executes the doc update workflow after creating the PR.
-
-**Why:** Zero-friction doc updates — user runs /ship and docs are automatically current. No extra command to remember.
-
-**Context:** /ship currently ends at Step 8 (PR URL output). Step 8.5 would continue into the document-release workflow. Same pattern as /ship calling /review's checklist in Step 3.5.
-
-**Effort:** S
-**Priority:** P1
-**Depends on:** /document-release shipped
+Shipped in v0.8.3. Step 8.5 added to `/ship` — after creating the PR, `/ship` automatically reads `document-release/SKILL.md` and executes the doc update workflow. Zero-friction doc updates.
 
 ### `{{DOC_VOICE}}` shared resolver
 
-**What:** Create a placeholder resolver in gen-skill-docs.ts encoding the gstack voice guide (friendly, user-forward, lead with benefits). Inject into /ship Step 5, /document-release Step 5, and reference from CLAUDE.md.
+**What:** Create a placeholder resolver in gen-skill-docs.ts encoding the g-stack-gemini voice guide (friendly, user-forward, lead with benefits). Inject into /ship Step 5, /document-release Step 5, and reference from GEMINI.md.
 
-**Why:** DRY — voice rules currently live inline in 3 places (CLAUDE.md CHANGELOG style section, /ship Step 5, /document-release Step 5). When the voice evolves, all three drift.
+**Why:** DRY — voice rules currently live inline in 3 places (GEMINI.md CHANGELOG style section, /ship Step 5, /document-release Step 5). When the voice evolves, all three drift.
 
 **Context:** Same pattern as `{{QA_METHODOLOGY}}` — shared block injected into multiple templates to prevent drift. ~20 lines in gen-skill-docs.ts.
 
@@ -470,13 +464,13 @@ Shipped as v0.5.0 on main. Includes `/plan-design-review` (report-only design au
 
 ~~**What:** Auto-detect which of the 4 reviews are relevant based on branch changes (skip Design Review if no CSS/view changes, skip Code Review if plan-only).~~
 
-`bin/gstack-diff-scope` shipped — categorizes diff into SCOPE_FRONTEND, SCOPE_BACKEND, SCOPE_PROMPTS, SCOPE_TESTS, SCOPE_DOCS, SCOPE_CONFIG. Used by design-review-lite to skip when no frontend files changed. Dashboard integration for conditional row display is a follow-up.
+`bin/g-stack-gemini-diff-scope` shipped — categorizes diff into SCOPE_FRONTEND, SCOPE_BACKEND, SCOPE_PROMPTS, SCOPE_TESTS, SCOPE_DOCS, SCOPE_CONFIG. Used by design-review-lite to skip when no frontend files changed. Dashboard integration for conditional row display is a follow-up.
 
 **Remaining:** Dashboard conditional row display (hide "Design Review: NOT YET RUN" when SCOPE_FRONTEND=false). Extend to Eng Review (skip for docs-only) and CEO Review (skip for config-only).
 
 **Effort:** S
 **Priority:** P3
-**Depends on:** gstack-diff-scope (shipped)
+**Depends on:** g-stack-gemini-diff-scope (shipped)
 
 ### /merge skill — review-gated PR merge
 
@@ -494,7 +488,7 @@ Shipped as v0.5.0 on main. Includes `/plan-design-review` (report-only design au
 
 ### Completeness metrics dashboard
 
-**What:** Track how often Claude chooses the complete option vs shortcut across gstack sessions. Aggregate into a dashboard showing completeness trend over time.
+**What:** Track how often Gemini chooses the complete option vs shortcut across g-stack-gemini sessions. Aggregate into a dashboard showing completeness trend over time.
 
 **Why:** Without measurement, we can't know if the Completeness Principle is working. Could surface patterns (e.g., certain skills still bias toward shortcuts).
 
@@ -506,39 +500,42 @@ Shipped as v0.5.0 on main. Includes `/plan-design-review` (report-only design au
 
 ## Safety & Observability
 
-### On-demand hook skills (/careful, /freeze, /guard)
+### On-demand hook skills (/careful, /freeze, /guard) — SHIPPED
 
-**What:** Three new skills that use Claude Code's session-scoped PreToolUse hooks to add safety guardrails on demand.
+~~**What:** Three new skills that use Gemini CLI's session-scoped PreToolUse hooks to add safety guardrails on demand.~~
 
-**Why:** Anthropic's internal skill best practices recommend on-demand hooks for safety. Claude Code already handles destructive command permissions, but these add an explicit opt-in layer for high-risk sessions (touching prod, debugging live systems).
+Shipped as `/careful`, `/freeze`, `/guard`, and `/unfreeze` in v0.6.5. Includes hook fire-rate telemetry (pattern name only, no command content) and inline skill activation telemetry.
 
-**Skills:**
-- `/careful` — PreToolUse hook on Bash tool. Warns (not blocks) before destructive commands: `rm -rf`, `DROP TABLE`, `git push --force`, `git reset --hard`, `kubectl delete`, `docker system prune`. Uses `permissionDecision: "ask"` so user can override.
-- `/freeze` — PreToolUse hook on Edit/Write tools. Restricts file edits to a user-specified directory. Great for debugging without accidentally "fixing" unrelated code.
-- `/guard` — meta-skill composing `/careful` + `/freeze` into one command.
+### Skill usage telemetry — SHIPPED
 
-**Implementation notes:** Use `${CLAUDE_SKILL_DIR}` (not `${SKILL_DIR}`) for script paths in hook commands. Pure bash JSON parsing (no jq dependency). Freeze dir storage: `${CLAUDE_PLUGIN_DATA}/freeze-dir.txt` with `~/.gstack/freeze-dir.txt` fallback. Ensure trailing `/` on freeze dir paths to prevent `/src` matching `/src-old`.
+~~**What:** Track which skills get invoked, how often, from which repo.~~
 
-**Effort:** M (human) / S (CC)
+Shipped in v0.6.5. TemplateContext in gen-skill-docs.ts bakes skill name into preamble telemetry line. Analytics CLI (`bun run analytics`) for querying. /retro integration shows skills-used-this-week.
+
+### /investigate scoped debugging enhancements (gated on telemetry)
+
+**What:** Six enhancements to /investigate auto-freeze, contingent on telemetry showing the freeze hook actually fires in real debugging sessions.
+
+**Why:** /investigate v0.7.1 auto-freezes edits to the module being debugged. If telemetry shows the hook fires often, these enhancements make the experience smarter. If it never fires, the problem wasn't real and these aren't worth building.
+
+**Context:** All items are prose additions to `investigate/SKILL.md.tmpl`. No new scripts.
+
+**Items:**
+1. Stack trace auto-detection for freeze directory (parse deepest app frame)
+2. Freeze boundary widening (ask to widen instead of hard-block when hitting boundary)
+3. Post-fix auto-unfreeze + full test suite run
+4. Debug instrumentation cleanup (tag with DEBUG-TEMP, remove before commit)
+5. Debug session persistence (~/.g-stack-gemini/investigate-sessions/ — save investigation for reuse)
+6. Investigation timeline in debug report (hypothesis log with timing)
+
+**Effort:** M (all 6 combined)
 **Priority:** P3
-**Depends on:** None
-
-### Skill usage telemetry
-
-**What:** Track which skills get invoked, how often, from which repo.
-
-**Why:** Enables finding undertriggering skills and measuring adoption. Anthropic uses a PreToolUse hook for this; simpler approach is appending JSONL from the preamble.
-
-**Context:** Add to `generatePreamble()` in `scripts/gen-skill-docs.ts`. Append to `~/.gstack/analytics/skill-usage.jsonl` with skill name, timestamp, and repo name. `mkdir -p` ensures the directory exists.
-
-**Effort:** S (human) / S (CC)
-**Priority:** P3
-**Depends on:** None
+**Depends on:** Telemetry data showing freeze hook fires in real /investigate sessions
 
 ## Completed
 
 ### Phase 1: Foundations (v0.2.0)
-- Rename to gstack
+- Rename to g-stack-gemini
 - Restructure to monorepo layout
 - Setup script for skill symlinks
 - Snapshot command with ref-based element selection
@@ -571,5 +568,5 @@ Shipped as v0.5.0 on main. Includes `/plan-design-review` (report-only design au
 **Completed:** v0.3.6
 
 ### Auto-upgrade mode + smart update check
-- Config CLI (`bin/gstack-config`), auto-upgrade via `~/.gstack/config.yaml`, 12h cache TTL, exponential snooze backoff (24h→48h→1wk), "never ask again" option, vendored copy sync on upgrade
+- Config CLI (`bin/g-stack-gemini-config`), auto-upgrade via `~/.g-stack-gemini/config.yaml`, 12h cache TTL, exponential snooze backoff (24h→48h→1wk), "never ask again" option, vendored copy sync on upgrade
 **Completed:** v0.3.8

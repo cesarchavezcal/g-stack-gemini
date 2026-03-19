@@ -7,6 +7,8 @@ description: |
   generates font+color preview pages. Creates DESIGN.md as your project's design source
   of truth. For existing sites, use /plan-design-review to infer the system instead.
   Use when asked to "design system", "brand guidelines", or "create DESIGN.md".
+  Proactively suggest when starting a new project's UI with no existing
+  design system or DESIGN.md.
 allowed-tools:
   - Bash
   - Read
@@ -50,8 +52,8 @@ ls src/ app/ pages/ components/ 2>/dev/null | head -30
 Look for office-hours output:
 
 ```bash
-eval $(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)
-ls ~/.gstack/projects/$SLUG/*office-hours* 2>/dev/null | head -5
+source <(~/.agents/skills/g-stack-gemini/bin/g-stack-gemini-slug 2>/dev/null)
+ls ~/.g-stack-gemini/projects/$SLUG/*office-hours* 2>/dev/null | head -5
 ls .context/*office-hours* .context/attachments/*office-hours* 2>/dev/null | head -5
 ```
 
@@ -331,7 +333,7 @@ Write `DESIGN.md` to the repo root with this structure:
 | [today] | Initial design system created | Created by /design-consultation based on [product context / research] |
 ```
 
-**Update CLAUDE.md** (or create it if it doesn't exist) — append this section:
+**Update CLAUDE.md (or GEMINI.md / .cursorrules)** (or create it if it doesn't exist) — append this section:
 
 ```markdown
 ## Design System
@@ -344,7 +346,7 @@ In QA mode, flag any code that doesn't match DESIGN.md.
 **AskUserQuestion Q-final — show summary and confirm:**
 
 List all decisions. Flag any that used agent defaults without explicit user confirmation (the user should know what they're shipping). Options:
-- A) Ship it — write DESIGN.md and CLAUDE.md
+- A) Ship it — write DESIGN.md and CLAUDE.md (or GEMINI.md / .cursorrules)
 - B) I want to change something (specify what)
 - C) Start over
 

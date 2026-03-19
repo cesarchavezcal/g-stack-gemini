@@ -1,4 +1,4 @@
-# gstack development
+# g-stack-gemini development
 
 ## Commands
 
@@ -15,14 +15,14 @@ bun run build        # gen docs + compile binaries
 bun run gen:skill-docs  # regenerate SKILL.md files from templates
 bun run skill:check  # health dashboard for all skills
 bun run dev:skill    # watch mode: auto-regen + validate on change
-bun run eval:list    # list all eval runs from ~/.gstack-dev/evals/
+bun run eval:list    # list all eval runs from ~/.g-stack-gemini-dev/evals/
 bun run eval:compare # compare two eval runs (auto-picks most recent)
 bun run eval:summary # aggregate stats across all eval runs
 ```
 
-`test:evals` requires `ANTHROPIC_API_KEY`. E2E tests stream progress in real-time
+`test:evals` requires `GOOGLE_API_KEY`. E2E tests stream progress in real-time
 (tool-by-tool via `--output-format stream-json --verbose`). Results are persisted
-to `~/.gstack-dev/evals/` with auto-comparison against the previous run.
+to `~/.g-stack-gemini-dev/evals/` with auto-comparison against the previous run.
 
 **Diff-based test selection:** `test:evals` and `test:e2e` auto-select tests based
 on `git diff` against the base branch. Each test declares its file dependencies in
@@ -30,10 +30,21 @@ on `git diff` against the base branch. Each test declares its file dependencies 
 llm-judge, gen-skill-docs) trigger all tests. Use `EVALS_ALL=1` or the `:all` script
 variants to force all tests. Run `eval:select` to preview which tests would run.
 
+## Testing
+
+```bash
+bun test             # run before every commit — free, <2s
+bun run test:evals   # run before shipping — paid, diff-based (~$4/run max)
+```
+
+`bun test` runs skill validation, gen-skill-docs quality checks, and browse
+integration tests. `bun run test:evals` runs LLM-judge quality evals and E2E
+tests via `gemini -p`. Both must pass before creating a PR.
+
 ## Project structure
 
 ```
-gstack/
+g-stack-gemini/
 ├── browse/          # Headless browser CLI (Playwright)
 │   ├── src/         # CLI + server + commands
 │   │   ├── commands.ts  # Command registry (single source of truth)
@@ -50,7 +61,7 @@ gstack/
 │   ├── skill-validation.test.ts  # Tier 1: static validation (free, <1s)
 │   ├── gen-skill-docs.test.ts    # Tier 1: generator quality (free, <1s)
 │   ├── skill-llm-eval.test.ts   # Tier 3: LLM-as-judge (~$0.15/run)
-│   └── skill-e2e.test.ts         # Tier 2: E2E via claude -p (~$3.85/run)
+│   └── skill-e2e.test.ts         # Tier 2: E2E via gemini -p (~$3.85/run)
 ├── qa-only/         # /qa-only skill (report-only QA, no fixes)
 ├── plan-design-review/  # /plan-design-review skill (report-only design audit)
 ├── design-review/    # /design-review skill (design audit + fix loop)
@@ -59,7 +70,7 @@ gstack/
 ├── plan-ceo-review/ # /plan-ceo-review skill
 ├── plan-eng-review/ # /plan-eng-review skill
 ├── office-hours/    # /office-hours skill (YC Office Hours — startup diagnostic + builder brainstorm)
-├── debug/           # /debug skill (systematic root-cause debugging)
+├── investigate/     # /investigate skill (systematic root-cause debugging)
 ├── retro/           # Retrospective skill
 ├── document-release/ # /document-release skill (post-ship doc updates)
 ├── setup            # One-time setup: build binary + symlink skills
@@ -79,14 +90,26 @@ SKILL.md files are **generated** from `.tmpl` templates. To update docs:
 To add a new browse command: add it to `browse/src/commands.ts` and rebuild.
 To add a snapshot flag: add it to `SNAPSHOT_FLAGS` in `browse/src/snapshot.ts` and rebuild.
 
+## Platform-agnostic design
+
+Skills must NEVER hardcode framework-specific commands, file patterns, or directory
+structures. Instead:
+
+1. **Read GEMINI.md** for project-specific config (test commands, eval commands, etc.)
+2. **If missing, AskUserQuestion** — let the user tell you or let g-stack-gemini search the repo
+3. **Persist the answer to GEMINI.md** so we never have to ask again
+
+This applies to test commands, eval commands, deploy commands, and any other
+project-specific behavior. The project owns its config; g-stack-gemini reads it.
+
 ## Writing SKILL templates
 
-SKILL.md.tmpl files are **prompt templates read by Claude**, not bash scripts.
+SKILL.md.tmpl files are **prompt templates read by Gemini**, not bash scripts.
 Each bash code block runs in a separate shell — variables do not persist between blocks.
 
 Rules:
 - **Use natural language for logic and state.** Don't use shell variables to pass
-  state between code blocks. Instead, tell Claude what to remember and reference
+  state between code blocks. Instead, tell Gemini what to remember and reference
   it in prose (e.g., "the base branch detected in Step 0").
 - **Don't hardcode branch names.** Detect `main`/`master`/etc dynamically via
   `gh pr view` or `gh repo view`. Use `{{BASE_BRANCH_DETECT}}` for PR-targeting
@@ -100,26 +123,26 @@ Rules:
 
 When you need to interact with a browser (QA, dogfooding, cookie setup), use the
 `/browse` skill or run the browse binary directly via `$B <command>`. NEVER use
-`mcp__claude-in-chrome__*` tools — they are slow, unreliable, and not what this
+`mcp__gemini-in-chrome__*` tools — they are slow, unreliable, and not what this
 project uses.
 
 ## Vendored symlink awareness
 
-When developing gstack, `.claude/skills/gstack` may be a symlink back to this
+When developing g-stack-gemini, `.agents/skills/g-stack-gemini` may be a symlink back to this
 working directory (gitignored). This means skill changes are **live immediately** —
 great for rapid iteration, risky during big refactors where half-written skills
-could break other Claude Code sessions using gstack concurrently.
+could break other Gemini CLI sessions using g-stack-gemini concurrently.
 
-**Check once per session:** Run `ls -la .claude/skills/gstack` to see if it's a
+**Check once per session:** Run `ls -la .agents/skills/g-stack-gemini` to see if it's a
 symlink or a real copy. If it's a symlink to your working directory, be aware that:
-- Template changes + `bun run gen:skill-docs` immediately affect all gstack invocations
-- Breaking changes to SKILL.md.tmpl files can break concurrent gstack sessions
-- During large refactors, remove the symlink (`rm .claude/skills/gstack`) so the
-  global install at `~/.claude/skills/gstack/` is used instead
+- Template changes + `bun run gen:skill-docs` immediately affect all g-stack-gemini invocations
+- Breaking changes to SKILL.md.tmpl files can break concurrent g-stack-gemini sessions
+- During large refactors, remove the symlink (`rm .agents/skills/g-stack-gemini`) so the
+  global install at `~/.agents/skills/g-stack-gemini/` is used instead
 
 **For plan reviews:** When reviewing plans that modify skill templates or the
 gen-skill-docs pipeline, consider whether the changes should be tested in isolation
-before going live (especially if the user is actively using gstack in other windows).
+before going live (especially if the user is actively using g-stack-gemini in other windows).
 
 ## Commit style
 
@@ -152,9 +175,9 @@ CHANGELOG.md is **for users**, not contributors. Write it like product release n
 
 ## AI effort compression
 
-When estimating or discussing effort, always show both human-team and CC+gstack time:
+When estimating or discussing effort, always show both human-team and CC+g-stack-gemini time:
 
-| Task type | Human team | CC+gstack | Compression |
+| Task type | Human team | CC+g-stack-gemini | Compression |
 |-----------|-----------|-----------|-------------|
 | Boilerplate / scaffolding | 2 days | 15 min | ~100x |
 | Test writing | 1 day | 15 min | ~50x |
@@ -169,7 +192,7 @@ Completeness Principle in the skill preamble for the full philosophy.
 
 ## Local plans
 
-Contributors can store long-range vision docs and design documents in `~/.gstack-dev/plans/`.
+Contributors can store long-range vision docs and design documents in `~/.g-stack-gemini-dev/plans/`.
 These are local-only (not checked in). When reviewing TODOS.md, check `plans/` for candidates
 that may be ready to promote to TODOs or implement.
 
@@ -190,10 +213,10 @@ regenerated SKILL.md shifts prompt context.
 
 ## Deploying to the active skill
 
-The active skill lives at `~/.claude/skills/gstack/`. After making changes:
+The active skill lives at `~/.agents/skills/g-stack-gemini/`. After making changes:
 
 1. Push your branch
-2. Fetch and reset in the skill directory: `cd ~/.claude/skills/gstack && git fetch origin && git reset --hard origin/main`
-3. Rebuild: `cd ~/.claude/skills/gstack && bun run build`
+2. Fetch and reset in the skill directory: `cd ~/.agents/skills/g-stack-gemini && git fetch origin && git reset --hard origin/main`
+3. Rebuild: `cd ~/.agents/skills/g-stack-gemini && bun run build`
 
-Or copy the binary directly: `cp browse/dist/browse ~/.claude/skills/gstack/browse/dist/browse`
+Or copy the binary directly: `cp browse/dist/browse ~/.agents/skills/g-stack-gemini/browse/dist/browse`

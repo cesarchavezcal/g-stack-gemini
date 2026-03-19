@@ -1,24 +1,34 @@
 # Skill Deep Dives
 
-Detailed guides for every gstack skill — philosophy, workflow, and examples.
+Detailed guides for every g-stack-gemini skill — philosophy, workflow, and examples.
 
 | Skill | Your specialist | What they do |
 |-------|----------------|--------------|
+| [`/office-hours`](#office-hours) | **YC Office Hours** | Start here. Six forcing questions that reframe your product before you write code. Pushes back on your framing, challenges premises, generates implementation alternatives. Design doc feeds into every downstream skill. |
 | [`/plan-ceo-review`](#plan-ceo-review) | **CEO / Founder** | Rethink the problem. Find the 10-star product hiding inside the request. Four modes: Expansion, Selective Expansion, Hold Scope, Reduction. |
 | [`/plan-eng-review`](#plan-eng-review) | **Eng Manager** | Lock in architecture, data flow, diagrams, edge cases, and tests. Forces hidden assumptions into the open. |
 | [`/plan-design-review`](#plan-design-review) | **Senior Designer** | Interactive plan-mode design review. Rates each dimension 0-10, explains what a 10 looks like, fixes the plan. Works in plan mode. |
 | [`/design-consultation`](#design-consultation) | **Design Partner** | Build a complete design system from scratch. Knows the landscape, proposes creative risks, generates realistic product mockups. Design at the heart of all other phases. |
 | [`/review`](#review) | **Staff Engineer** | Find the bugs that pass CI but blow up in production. Auto-fixes the obvious ones. Flags completeness gaps. |
-| [`/ship`](#ship) | **Release Engineer** | Sync main, run tests, audit coverage, push, open PR. Bootstraps test frameworks if you don't have one. One command. |
-| [`/browse`](#browse) | **QA Engineer** | Give the agent eyes. Real Chromium browser, real clicks, real screenshots. ~100ms per command. |
+| [`/investigate`](#investigate) | **Debugger** | Systematic root-cause debugging. Iron Law: no fixes without investigation. Traces data flow, tests hypotheses, stops after 3 failed fixes. |
+| [`/design-review`](#design-review) | **Designer Who Codes** | Live-site visual audit + fix loop. 80-item audit, then fixes what it finds. Atomic commits, before/after screenshots. |
 | [`/qa`](#qa) | **QA Lead** | Test your app, find bugs, fix them with atomic commits, re-verify. Auto-generates regression tests for every fix. |
 | [`/qa-only`](#qa) | **QA Reporter** | Same methodology as /qa but report only. Use when you want a pure bug report without code changes. |
-| [`/design-review`](#design-review) | **Designer Who Codes** | Live-site visual audit + fix loop. 80-item audit, then fixes what it finds. Atomic commits, before/after screenshots. |
-| [`/setup-browser-cookies`](#setup-browser-cookies) | **Session Manager** | Import cookies from your real browser (Chrome, Arc, Brave, Edge) into the headless session. Test authenticated pages. |
-| [`/retro`](#retro) | **Eng Manager** | Team-aware weekly retro. Per-person breakdowns, shipping streaks, test health trends, growth opportunities. |
-| [`/office-hours`](#office-hours) | **YC Office Hours** | Two modes. Startup: six forcing questions on demand, users, and product. Builder: brainstorming for side projects, hackathons, and learning. Writes a design doc with personal observations about how you think. |
-| [`/debug`](#debug) | **Debugger** | Systematic root-cause debugging. Iron Law: no fixes without investigation. Traces data flow, tests hypotheses, stops after 3 failed fixes. |
+| [`/ship`](#ship) | **Release Engineer** | Sync main, run tests, audit coverage, push, open PR. Bootstraps test frameworks if you don't have one. One command. |
 | [`/document-release`](#document-release) | **Technical Writer** | Update all project docs to match what you just shipped. Catches stale READMEs automatically. |
+| [`/retro`](#retro) | **Eng Manager** | Team-aware weekly retro. Per-person breakdowns, shipping streaks, test health trends, growth opportunities. |
+| [`/browse`](#browse) | **QA Engineer** | Give the agent eyes. Real Chromium browser, real clicks, real screenshots. ~100ms per command. |
+| [`/setup-browser-cookies`](#setup-browser-cookies) | **Session Manager** | Import cookies from your real browser (Chrome, Arc, Brave, Edge) into the headless session. Test authenticated pages. |
+| | | |
+| **Multi-AI** | | |
+| [`/codex`](#codex) | **Second Opinion** | Independent review from OpenAI Codex CLI. Three modes: code review (pass/fail gate), adversarial challenge, and open consultation with session continuity. Cross-model analysis when both `/review` and `/codex` have run. |
+| | | |
+| **Safety & Utility** | | |
+| [`/careful`](#safety--guardrails) | **Safety Guardrails** | Warns before destructive commands (rm -rf, DROP TABLE, force-push, git reset --hard). Override any warning. Common build cleanups whitelisted. |
+| [`/freeze`](#safety--guardrails) | **Edit Lock** | Restrict all file edits to a single directory. Blocks Edit and Write outside the boundary. Accident prevention for debugging. |
+| [`/guard`](#safety--guardrails) | **Full Safety** | Combines /careful + /freeze in one command. Maximum safety for prod work. |
+| [`/unfreeze`](#safety--guardrails) | **Unlock** | Remove the /freeze boundary, allowing edits everywhere again. |
+| [`/g-stack-gemini-upgrade`](#g-stack-gemini-upgrade) | **Self-Updater** | Upgrade g-stack-gemini to the latest version. Detects global vs vendored install, syncs both, shows what changed. |
 
 ---
 
@@ -26,25 +36,56 @@ Detailed guides for every gstack skill — philosophy, workflow, and examples.
 
 This is where every project should start.
 
-Before you plan, before you review, before you write code — sit down and think about what you're building and why. `/office-hours` is a YC-style conversation that forces clarity before action.
+Before you plan, before you review, before you write code — sit down with a YC-style partner and think about what you're actually building. Not what you think you're building. What you're *actually* building.
 
-It works in two modes, and it asks you which one upfront:
+### The reframe
+
+Here's what happened on a real project. The user said: "I want to build a daily briefing app for my calendar." Reasonable request. Then it asked about the pain — specific examples, not hypotheticals. They described an assistant missing things, calendar items across multiple Google accounts with stale info, prep docs that were AI slop, events with wrong locations that took forever to track down.
+
+It came back with: *"I'm going to push back on the framing, because I think you've outgrown it. You said 'daily briefing app for multi-Google-Calendar management.' But what you actually described is a personal chief of staff AI."*
+
+Then it extracted five capabilities the user didn't realize they were describing:
+
+1. **Watches your calendar** across all accounts and detects stale info, missing locations, permission gaps
+2. **Generates real prep work** — not logistics summaries, but *the intellectual work* of preparing for a board meeting, a podcast, a fundraiser
+3. **Manages your CRM** — who are you meeting, what's the relationship, what do they want, what's the history
+4. **Prioritizes your time** — flags when prep needs to start early, blocks time proactively, ranks events by importance
+5. **Trades money for leverage** — actively looks for ways to delegate or automate
+
+That reframe changed the entire project. They were about to build a calendar app. Now they're building something ten times more valuable — because the skill listened to their pain instead of their feature request.
+
+### Premise challenge
+
+After the reframe, it presents premises for you to validate. Not "does this sound good?" — actual falsifiable claims about the product:
+
+1. The calendar is the anchor data source, but the value is in the intelligence layer on top
+2. The assistant doesn't get replaced — they get superpowered
+3. The narrowest wedge is a daily briefing that actually works
+4. CRM integration is a must-have, not a nice-to-have
+
+You agree, disagree, or adjust. Every premise you accept becomes load-bearing in the design doc.
+
+### Implementation alternatives
+
+Then it generates 2-3 concrete implementation approaches with honest effort estimates:
+
+- **Approach A: Daily Briefing First** — narrowest wedge, ships tomorrow, M effort (human: ~3 weeks / CC: ~2 days)
+- **Approach B: CRM-First** — build the relationship graph first, L effort (human: ~6 weeks / CC: ~4 days)
+- **Approach C: Full Vision** — everything at once, XL effort (human: ~3 months / CC: ~1.5 weeks)
+
+Recommends A because you learn from real usage. CRM data comes naturally in week two.
+
+### Two modes
 
 **Startup mode** — for founders and intrapreneurs building a business. You get six forcing questions distilled from how YC partners evaluate products: demand reality, status quo, desperate specificity, narrowest wedge, observation & surprise, and future-fit. These questions are uncomfortable on purpose. If you can't name a specific human who needs your product, that's the most important thing to learn before writing any code.
 
 **Builder mode** — for hackathons, side projects, open source, learning, and having fun. You get an enthusiastic collaborator who helps you find the coolest version of your idea. What would make someone say "whoa"? What's the fastest path to something you can share? The questions are generative, not interrogative.
 
-Both modes end with a design doc written to `~/.gstack/projects/` — and that doc feeds directly into `/plan-ceo-review` and `/plan-eng-review`. The full lifecycle is now: `office-hours → plan → implement → review → QA → ship → retro`.
+### The design doc
 
-**Personal observations.** After the design doc is approved, `/office-hours` reflects on what it noticed about how you think — not generic praise, but specific callbacks to things you said during the session. The observations appear in the design doc too, so you re-encounter them when you re-read later.
+Both modes end with a design doc written to `~/.g-stack-gemini/projects/` — and that doc feeds directly into `/plan-ceo-review` and `/plan-eng-review`. The full lifecycle is now: `office-hours → plan → implement → review → QA → ship → retro`.
 
----
-
-## `/debug`
-
-When something is broken and you don't know why, `/debug` is your systematic debugger. It follows the Iron Law: **no fixes without root cause investigation first.**
-
-Instead of guessing and patching, it traces data flow, matches against known bug patterns, and tests hypotheses one at a time. If three fix attempts fail, it stops and questions the architecture instead of thrashing. This prevents the "let me try one more thing" spiral that wastes hours.
+After the design doc is approved, `/office-hours` reflects on what it noticed about how you think — not generic praise, but specific callbacks to things you said during the session. The observations appear in the design doc too, so you re-encounter them when you re-read later.
 
 ---
 
@@ -96,7 +137,7 @@ It asks, **"what is the 10-star product hiding inside this request?"**
 - **HOLD SCOPE** — maximum rigor on the existing plan. No expansions surfaced.
 - **SCOPE REDUCTION** — find the minimum viable version. Cut everything else.
 
-Visions and decisions are persisted to `~/.gstack/projects/` so they survive beyond the conversation. Exceptional visions can be promoted to `docs/designs/` in your repo for the team.
+Visions and decisions are persisted to `~/.g-stack-gemini/projects/` so they survive beyond the conversation. Exceptional visions can be promoted to `docs/designs/` in your repo for the team.
 
 ---
 
@@ -173,11 +214,11 @@ Every review (CEO, Eng, Design) logs its result. At the end of each review, you 
 +====================================================================+
 ```
 
-Eng Review is the only required gate (disable with `gstack-config set skip_eng_review true`). CEO and Design are informational — recommended for product and UI changes respectively.
+Eng Review is the only required gate (disable with `g-stack-gemini-config set skip_eng_review true`). CEO and Design are informational — recommended for product and UI changes respectively.
 
 ### Plan-to-QA flow
 
-When `/plan-eng-review` finishes the test review section, it writes a test plan artifact to `~/.gstack/projects/`. When you later run `/qa`, it picks up that test plan automatically — your engineering review feeds directly into QA testing with no manual copy-paste.
+When `/plan-eng-review` finishes the test review section, it writes a test plan artifact to `~/.g-stack-gemini/projects/`. When you later run `/qa`, it picks up that test plan automatically — your engineering review feeds directly into QA testing with no manual copy-paste.
 
 ---
 
@@ -198,7 +239,7 @@ Seven passes over the plan: information architecture, interaction state coverage
 ```
 You:   /plan-design-review
 
-Claude: Initial Design Rating: 4/10
+Gemini: Initial Design Rating: 4/10
 
         "This plan describes a user dashboard but never specifies
          what the user sees first. It says 'cards with icons' —
@@ -246,21 +287,21 @@ If you want, the agent will research what's already out there in your space — 
 
 After you agree on the system, it generates an interactive HTML preview page — not just swatches and font samples, but realistic product pages. If you are building a dashboard, you see a dashboard with a sidebar, data tables, and stat cards. If you are building a marketing site, you see a hero section with real copy and a CTA. Everything rendered in your design system, with your product name, in light and dark mode. You see what your product could feel like before a single line of production code is written.
 
-Then it writes `DESIGN.md` to your repo root — your project's design source of truth — and updates `CLAUDE.md` so every future Claude Code session respects the system. From that point on, `/design-review` can audit against it, and any agent working on your frontend knows the rules.
+Then it writes `DESIGN.md` to your repo root — your project's design source of truth — and updates `GEMINI.md` so every future Gemini CLI session respects the system. From that point on, `/design-review` can audit against it, and any agent working on your frontend knows the rules.
 
 ### Example
 
 ```
 You:   /design-consultation
 
-Claude: From the README, this looks like a developer analytics dashboard
+Gemini: From the README, this looks like a developer analytics dashboard
         for engineering teams. Sound right? Tell me about the feeling
         you want — and would you like me to look at what's out there
         first so we can see the landscape?
 
 You:    Yes, it's for eng managers. Show me what's out there.
 
-Claude: [browses Linear, Vercel, Datadog, Posthog — takes screenshots]
+Gemini: [browses Linear, Vercel, Datadog, Posthog — takes screenshots]
 
         Here's the landscape. They all converge on clean sans-serifs
         and muted blue-gray palettes. Linear stands out with dark-first
@@ -295,7 +336,7 @@ Claude: [browses Linear, Vercel, Datadog, Posthog — takes screenshots]
 
 You:    Love the serif risk. Let's see it.
 
-Claude: Preview opened in your browser.
+Gemini: Preview opened in your browser.
         [/tmp/design-consultation-preview-1710000000.html]
 
         The page shows a realistic dashboard: sidebar nav, header with
@@ -308,8 +349,8 @@ Claude: Preview opened in your browser.
 
 You:    Ship it.
 
-Claude: Wrote DESIGN.md (typography, color, spacing, layout, motion).
-        Updated CLAUDE.md with design system guidelines.
+Gemini: Wrote DESIGN.md (typography, color, spacing, layout, motion).
+        Updated GEMINI.md with design system guidelines.
         All future sessions will respect these choices.
 ```
 
@@ -330,7 +371,7 @@ The self-regulation heuristic is tuned for design work — CSS-only changes get 
 ```
 You:   /design-review https://myapp.com
 
-Claude: [Runs full 80-item visual audit on the live site]
+Gemini: [Runs full 80-item visual audit on the live site]
         Design Score: C  |  AI Slop Score: D
         12 findings (4 high, 5 medium, 3 polish)
 
@@ -350,7 +391,7 @@ Claude: [Runs full 80-item visual audit on the live site]
         Design Score: C → B+  |  AI Slop Score: D → A
         9 fixes applied (8 verified, 1 best-effort). 3 deferred.
 
-        [Report with before/after screenshots saved to .gstack/design-reports/]
+        [Report with before/after screenshots saved to .g-stack-gemini/design-reports/]
 ```
 
 Nine commits, each touching one concern. The AI Slop score went from D to A because the three most recognizable patterns (gradient hero, 3-column grid, uniform radius) are gone.
@@ -409,74 +450,11 @@ I want the model imagining the production incident before it happens.
 
 ---
 
-## `/ship`
+## `/investigate`
 
-This is my **release machine mode**.
+When something is broken and you don't know why, `/investigate` is your systematic debugger. It follows the Iron Law: **no fixes without root cause investigation first.**
 
-Once I have decided what to build, nailed the technical plan, and run a serious review, I do not want more talking. I want execution.
-
-`/ship` is for the final mile. It is for a ready branch, not for deciding what to build.
-
-This is where the model should stop behaving like a brainstorm partner and start behaving like a disciplined release engineer: sync with main, run the right tests, make sure the branch state is sane, update changelog or versioning if the repo expects it, push, and create or update the PR.
-
-### Test bootstrap
-
-If your project doesn't have a test framework, `/ship` sets one up — detects your runtime, researches the best framework, installs it, writes 3-5 real tests for your actual code, sets up CI/CD (GitHub Actions), and creates TESTING.md. 100% test coverage is the goal — tests make vibe coding safe instead of yolo coding.
-
-### Coverage audit
-
-Every `/ship` run builds a code path map from your diff, searches for corresponding tests, and produces an ASCII coverage diagram with quality stars. Gaps get tests auto-generated. Your PR body shows the coverage: `Tests: 42 → 47 (+5 new)`.
-
-### Review gate
-
-`/ship` checks the [Review Readiness Dashboard](#review-readiness-dashboard) before creating the PR. If the Eng Review is missing, it asks — but won't block you. Decisions are saved per-branch so you're never re-asked.
-
-A lot of branches die when the interesting work is done and only the boring release work is left. Humans procrastinate that part. AI should not.
-
----
-
-## `/browse`
-
-This is my **QA engineer mode**.
-
-`/browse` is the skill that closes the loop. Before it, the agent could think and code but was still half blind. It had to guess about UI state, auth flows, redirects, console errors, empty states, and broken layouts. Now it can just go look.
-
-It is a compiled binary that talks to a persistent Chromium daemon — built on [Playwright](https://playwright.dev/) by Microsoft. First call starts the browser (~3s). Every call after that: ~100-200ms. The browser stays running between commands, so cookies, tabs, and localStorage carry over.
-
-### Example
-
-```
-You:   /browse staging.myapp.com — log in, test the signup flow, and check
-       every page I changed in this branch
-
-Claude: [18 tool calls, ~60 seconds]
-
-        > browse goto https://staging.myapp.com/signup
-        > browse snapshot -i
-        > browse fill @e2 "test@example.com"
-        > browse fill @e3 "password123"
-        > browse click @e5                    (Submit)
-        > browse screenshot /tmp/signup.png
-        > Read /tmp/signup.png
-
-        Signup works. Redirected to onboarding. Now checking changed pages.
-
-        > browse goto https://staging.myapp.com/dashboard
-        > browse screenshot /tmp/dashboard.png
-        > Read /tmp/dashboard.png
-        > browse console
-
-        Dashboard loads. No console errors. Charts render with sample data.
-
-        All 4 pages load correctly. No console errors. No broken layouts.
-        Signup → onboarding → dashboard flow works end to end.
-```
-
-18 tool calls, about a minute. Full QA pass. No browser opened.
-
-**Security note:** `/browse` runs a persistent Chromium session. Cookies, localStorage, and session state carry over between commands. Do not use it against sensitive production environments unless you intend to — it is a real browser with real state. The session auto-shuts down after 30 minutes of idle time.
-
-For the full command reference, see [BROWSER.md](../BROWSER.md).
+Instead of guessing and patching, it traces data flow, matches against known bug patterns, and tests hypotheses one at a time. If three fix attempts fail, it stops and questions the architecture instead of thrashing. This prevents the "let me try one more thing" spiral that wastes hours.
 
 ---
 
@@ -504,7 +482,7 @@ When `/qa` fixes a bug and verifies it, it automatically generates a regression 
 ```
 You:   /qa https://staging.myapp.com
 
-Claude: [Explores 12 pages, fills 3 forms, tests 2 flows]
+Gemini: [Explores 12 pages, fills 3 forms, tests 2 flows]
 
         QA Report: staging.myapp.com — Health Score: 72/100
 
@@ -513,41 +491,59 @@ Claude: [Explores 12 pages, fills 3 forms, tests 2 flows]
         2. HIGH: Mobile nav menu doesn't close after selecting an item
         3. MEDIUM: Dashboard chart overlaps sidebar below 1024px
 
-        [Full report with screenshots saved to .gstack/qa-reports/]
+        [Full report with screenshots saved to .g-stack-gemini/qa-reports/]
 ```
 
 **Testing authenticated pages:** Use `/setup-browser-cookies` first to import your real browser sessions, then `/qa` can test pages behind login.
 
 ---
 
-## `/setup-browser-cookies`
+## `/ship`
 
-This is my **session manager mode**.
+This is my **release machine mode**.
 
-Before `/qa` or `/browse` can test authenticated pages, they need cookies. Instead of manually logging in through the headless browser every time, `/setup-browser-cookies` imports your real sessions directly from your daily browser.
+Once I have decided what to build, nailed the technical plan, and run a serious review, I do not want more talking. I want execution.
 
-It auto-detects installed Chromium browsers (Comet, Chrome, Arc, Brave, Edge), decrypts cookies via the macOS Keychain, and loads them into the Playwright session. An interactive picker UI lets you choose exactly which domains to import — no cookie values are ever displayed.
+`/ship` is for the final mile. It is for a ready branch, not for deciding what to build.
+
+This is where the model should stop behaving like a brainstorm partner and start behaving like a disciplined release engineer: sync with main, run the right tests, make sure the branch state is sane, update changelog or versioning if the repo expects it, push, and create or update the PR.
+
+### Test bootstrap
+
+If your project doesn't have a test framework, `/ship` sets one up — detects your runtime, researches the best framework, installs it, writes 3-5 real tests for your actual code, sets up CI/CD (GitHub Actions), and creates TESTING.md. 100% test coverage is the goal — tests make vibe coding safe instead of yolo coding.
+
+### Coverage audit
+
+Every `/ship` run builds a code path map from your diff, searches for corresponding tests, and produces an ASCII coverage diagram with quality stars. Gaps get tests auto-generated. Your PR body shows the coverage: `Tests: 42 → 47 (+5 new)`.
+
+### Review gate
+
+`/ship` checks the [Review Readiness Dashboard](#review-readiness-dashboard) before creating the PR. If the Eng Review is missing, it asks — but won't block you. Decisions are saved per-branch so you're never re-asked.
+
+A lot of branches die when the interesting work is done and only the boring release work is left. Humans procrastinate that part. AI should not.
+
+---
+
+## `/document-release`
+
+This is my **technical writer mode**.
+
+After `/ship` creates the PR but before it merges, `/document-release` reads every documentation file in the project and cross-references it against the diff. It updates file paths, command lists, project structure trees, and anything else that drifted. Risky or subjective changes get surfaced as questions — everything else is handled automatically.
 
 ```
-You:   /setup-browser-cookies
+You:   /document-release
 
-Claude: Cookie picker opened — select the domains you want to import
-        in your browser, then tell me when you're done.
+Gemini: Analyzing 21 files changed across 3 commits. Found 8 documentation files.
 
-        [You pick github.com, myapp.com in the browser UI]
+        README.md: updated skill count from 9 to 10, added new skill to table
+        GEMINI.md: added new directory to project structure
+        CONTRIBUTING.md: current — no changes needed
+        TODOS.md: marked 2 items complete, added 1 new item
 
-You:    done
-
-Claude: Imported 2 domains (47 cookies). Session is ready.
+        All docs updated and committed. PR body updated with doc diff.
 ```
 
-Or skip the UI entirely:
-
-```
-You:   /setup-browser-cookies github.com
-
-Claude: Imported 12 cookies for github.com from Comet.
-```
+It also polishes CHANGELOG voice (without ever overwriting entries), cleans up completed TODOS, checks cross-doc consistency, and asks about VERSION bumps only when appropriate.
 
 ---
 
@@ -566,7 +562,7 @@ It also tracks test health: total test files, tests added this period, regressio
 ```
 You:   /retro
 
-Claude: Week of Mar 1: 47 commits (3 contributors), 3.2k LOC, 38% tests, 12 PRs, peak: 10pm | Streak: 47d
+Gemini: Week of Mar 1: 47 commits (3 contributors), 3.2k LOC, 38% tests, 12 PRs, peak: 10pm | Streak: 47d
 
         ## Your Week
         32 commits, +2.4k LOC, 41% tests. Peak hours: 9-11pm.
@@ -591,26 +587,212 @@ It saves a JSON snapshot to `.context/retros/` so the next run can show trends.
 
 ---
 
-## `/document-release`
+## `/browse`
 
-This is my **technical writer mode**.
+This is my **QA engineer mode**.
 
-After `/ship` creates the PR but before it merges, `/document-release` reads every documentation file in the project and cross-references it against the diff. It updates file paths, command lists, project structure trees, and anything else that drifted. Risky or subjective changes get surfaced as questions — everything else is handled automatically.
+`/browse` is the skill that closes the loop. Before it, the agent could think and code but was still half blind. It had to guess about UI state, auth flows, redirects, console errors, empty states, and broken layouts. Now it can just go look.
+
+It is a compiled binary that talks to a persistent Chromium daemon — built on [Playwright](https://playwright.dev/) by Microsoft. First call starts the browser (~3s). Every call after that: ~100-200ms. The browser stays running between commands, so cookies, tabs, and localStorage carry over.
+
+### Example
 
 ```
-You:   /document-release
+You:   /browse staging.myapp.com — log in, test the signup flow, and check
+       every page I changed in this branch
 
-Claude: Analyzing 21 files changed across 3 commits. Found 8 documentation files.
+Gemini: [18 tool calls, ~60 seconds]
 
-        README.md: updated skill count from 9 to 10, added new skill to table
-        CLAUDE.md: added new directory to project structure
-        CONTRIBUTING.md: current — no changes needed
-        TODOS.md: marked 2 items complete, added 1 new item
+        > browse goto https://staging.myapp.com/signup
+        > browse snapshot -i
+        > browse fill @e2 "test@example.com"
+        > browse fill @e3 "password123"
+        > browse click @e5                    (Submit)
+        > browse screenshot /tmp/signup.png
+        > Read /tmp/signup.png
 
-        All docs updated and committed. PR body updated with doc diff.
+        Signup works. Redirected to onboarding. Now checking changed pages.
+
+        > browse goto https://staging.myapp.com/dashboard
+        > browse screenshot /tmp/dashboard.png
+        > Read /tmp/dashboard.png
+        > browse console
+
+        Dashboard loads. No console errors. Charts render with sample data.
+
+        All 4 pages load correctly. No console errors. No broken layouts.
+        Signup → onboarding → dashboard flow works end to end.
 ```
 
-It also polishes CHANGELOG voice (without ever overwriting entries), cleans up completed TODOS, checks cross-doc consistency, and asks about VERSION bumps only when appropriate.
+18 tool calls, about a minute. Full QA pass. No browser opened.
+
+### Browser handoff
+
+When the headless browser gets stuck — CAPTCHA, MFA, complex auth — hand off to the user:
+
+```
+Gemini: I'm stuck on a CAPTCHA at the login page. Opening a visible
+        Chrome so you can solve it.
+
+        > browse handoff "Stuck on CAPTCHA at login page"
+
+        Chrome opened at https://app.example.com/login with all your
+        cookies and tabs intact. Solve the CAPTCHA and tell me when
+        you're done.
+
+You:    done
+
+Gemini: > browse resume
+
+        Got a fresh snapshot. Logged in successfully. Continuing QA.
+```
+
+The browser preserves all state (cookies, localStorage, tabs) across the handoff. After `resume`, the agent gets a fresh snapshot of wherever you left off. If the browse tool fails 3 times in a row, it automatically suggests using `handoff`.
+
+**Security note:** `/browse` runs a persistent Chromium session. Cookies, localStorage, and session state carry over between commands. Do not use it against sensitive production environments unless you intend to — it is a real browser with real state. The session auto-shuts down after 30 minutes of idle time.
+
+For the full command reference, see [BROWSER.md](../BROWSER.md).
+
+---
+
+## `/setup-browser-cookies`
+
+This is my **session manager mode**.
+
+Before `/qa` or `/browse` can test authenticated pages, they need cookies. Instead of manually logging in through the headless browser every time, `/setup-browser-cookies` imports your real sessions directly from your daily browser.
+
+It auto-detects installed Chromium browsers (Comet, Chrome, Arc, Brave, Edge), decrypts cookies via the macOS Keychain, and loads them into the Playwright session. An interactive picker UI lets you choose exactly which domains to import — no cookie values are ever displayed.
+
+```
+You:   /setup-browser-cookies
+
+Gemini: Cookie picker opened — select the domains you want to import
+        in your browser, then tell me when you're done.
+
+        [You pick github.com, myapp.com in the browser UI]
+
+You:    done
+
+Gemini: Imported 2 domains (47 cookies). Session is ready.
+```
+
+Or skip the UI entirely:
+
+```
+You:   /setup-browser-cookies github.com
+
+Gemini: Imported 12 cookies for github.com from Comet.
+```
+
+---
+
+## `/codex`
+
+This is my **second opinion mode**.
+
+When `/review` catches bugs from Gemini's perspective, `/codex` brings a completely different AI — OpenAI's Codex CLI — to review the same diff. Different training, different blind spots, different strengths. The overlap tells you what's definitely real. The unique findings from each are where you find the bugs neither would catch alone.
+
+### Three modes
+
+**Review** — run `codex review` against the current diff. Codex reads every changed file, classifies findings by severity (P1 critical, P2 high, P3 medium), and returns a PASS/FAIL verdict. Any P1 finding = FAIL. The review is fully independent — Codex doesn't see Gemini's review.
+
+**Challenge** — adversarial mode. Codex actively tries to break your code. It looks for edge cases, race conditions, security holes, and assumptions that would fail under load. Uses maximum reasoning effort (`xhigh`). Think of it as a penetration test for your logic.
+
+**Consult** — open conversation with session continuity. Ask Codex anything about the codebase. Follow-up questions reuse the same session, so context carries over. Great for "am I thinking about this correctly?" moments.
+
+### Cross-model analysis
+
+When both `/review` (Gemini) and `/codex` (OpenAI) have reviewed the same branch, you get a cross-model comparison: which findings overlap (high confidence), which are unique to Codex (different perspective), and which are unique to Gemini. This is the "two doctors, same patient" approach to code review.
+
+```
+You:   /codex review
+
+Gemini: Running independent Codex review...
+
+        CODEX REVIEW: PASS (3 findings)
+        [P2] Race condition in payment handler — concurrent charges
+             can double-debit without advisory lock
+        [P3] Missing null check on user.email before downcase
+        [P3] Token comparison not using constant-time compare
+
+        Cross-model analysis (vs /review):
+        OVERLAP: Race condition in payment handler (both caught it)
+        UNIQUE TO CODEX: Token comparison timing attack
+        UNIQUE TO CLAUDE: N+1 query in listing photos
+```
+
+---
+
+## Safety & Guardrails
+
+Four skills that add safety rails to any Gemini CLI session. They work via Gemini CLI's PreToolUse hooks — transparent, session-scoped, no configuration files.
+
+### `/careful`
+
+Say "be careful" or run `/careful` when you're working near production, running destructive commands, or just want a safety net. Every Bash command gets checked against known-dangerous patterns:
+
+- `rm -rf` / `rm -r` — recursive delete
+- `DROP TABLE` / `DROP DATABASE` / `TRUNCATE` — data loss
+- `git push --force` / `git push -f` — history rewrite
+- `git reset --hard` — discard commits
+- `git checkout .` / `git restore .` — discard uncommitted work
+- `kubectl delete` — production resource deletion
+- `docker rm -f` / `docker system prune` — container/image loss
+
+Common build artifact cleanups (`rm -rf node_modules`, `dist`, `.next`, `__pycache__`, `build`, `coverage`) are whitelisted — no false alarms on routine operations.
+
+You can override any warning. The guardrails are accident prevention, not access control.
+
+### `/freeze`
+
+Restrict all file edits to a single directory. When you're debugging a billing bug, you don't want Gemini accidentally "fixing" unrelated code in `src/auth/`. `/freeze src/billing` blocks all Edit and Write operations outside that path.
+
+`/investigate` activates this automatically — it detects the module being debugged and freezes edits to that directory.
+
+```
+You:   /freeze src/billing
+
+Gemini: Edits restricted to src/billing/. Run /unfreeze to remove.
+
+        [Later, Gemini tries to edit src/auth/middleware.ts]
+
+Gemini: BLOCKED — Edit outside freeze boundary (src/billing/).
+        Skipping this change.
+```
+
+Note: this blocks Edit and Write tools only. Bash commands like `sed` can still modify files outside the boundary — it's accident prevention, not a security sandbox.
+
+### `/guard`
+
+Full safety mode — combines `/careful` + `/freeze` in one command. Destructive command warnings plus directory-scoped edits. Use when touching prod or debugging live systems.
+
+### `/unfreeze`
+
+Remove the `/freeze` boundary, allowing edits everywhere again. The hooks stay registered for the session — they just allow everything. Run `/freeze` again to set a new boundary.
+
+---
+
+## `/g-stack-gemini-upgrade`
+
+Keep g-stack-gemini current with one command. It detects your install type (global at `~/.agents/skills/g-stack-gemini` vs vendored in your project at `.agents/skills/g-stack-gemini`), runs the upgrade, syncs both copies if you have dual installs, and shows you what changed.
+
+```
+You:   /g-stack-gemini-upgrade
+
+Gemini: Current version: 0.7.4
+        Latest version: 0.8.2
+
+        What's new:
+        - Browse handoff for CAPTCHAs and auth walls
+        - /codex multi-AI second opinion
+        - /qa always uses browser now
+        - Safety skills: /careful, /freeze, /guard
+        - Proactive skill suggestions
+
+        Upgraded to 0.8.2. Both global and project installs synced.
+```
+
+Set `auto_upgrade: true` in `~/.g-stack-gemini/config.yaml` to skip the prompt entirely — g-stack-gemini upgrades silently at the start of each session when a new version is available.
 
 ---
 
@@ -620,13 +802,13 @@ It also polishes CHANGELOG voice (without ever overwriting entries), cleans up c
 
 ### Setup
 
-Install Greptile on your GitHub repo at [greptile.com](https://greptile.com) — it takes about 30 seconds. Once it's reviewing your PRs, gstack picks up its comments automatically. No additional configuration.
+Install Greptile on your GitHub repo at [greptile.com](https://greptile.com) — it takes about 30 seconds. Once it's reviewing your PRs, g-stack-gemini picks up its comments automatically. No additional configuration.
 
 ### How it works
 
 The problem with any automated reviewer is triage. Greptile is good, but not every comment is a real issue. Some are false positives. Some flag things you already fixed three commits ago. Without a triage layer, the comments pile up and you start ignoring them — which defeats the purpose.
 
-gstack solves this. `/review` and `/ship` are now Greptile-aware. They read Greptile's comments, classify each one, and take action:
+g-stack-gemini solves this. `/review` and `/ship` are now Greptile-aware. They read Greptile's comments, classify each one, and take action:
 
 - **Valid issues** get added to the critical findings and fixed before shipping
 - **Already-fixed issues** get an auto-reply acknowledging the catch
@@ -636,14 +818,14 @@ The result is a two-layer review: Greptile catches things asynchronously on the 
 
 ### Learning from history
 
-Every false positive you confirm gets saved to `~/.gstack/greptile-history.md`. Future runs auto-skip known FP patterns for your codebase. And `/retro` tracks Greptile's batting average over time — so you can see whether the signal-to-noise ratio is improving.
+Every false positive you confirm gets saved to `~/.g-stack-gemini/greptile-history.md`. Future runs auto-skip known FP patterns for your codebase. And `/retro` tracks Greptile's batting average over time — so you can see whether the signal-to-noise ratio is improving.
 
 ### Example
 
 ```
 You:   /ship
 
-Claude: [syncs main, runs tests, pre-landing review...]
+Gemini: [syncs main, runs tests, pre-landing review...]
 
         Greptile found 3 comments on this PR:
 
@@ -666,7 +848,7 @@ Claude: [syncs main, runs tests, pre-landing review...]
 
 You:    A
 
-Claude: Replied to Greptile. All tests pass.
+Gemini: Replied to Greptile. All tests pass.
         PR: github.com/you/app/pull/42
 ```
 
